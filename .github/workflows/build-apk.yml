@@ -32,7 +32,30 @@ jobs:
           gradle-version: '8.7'
 
       - name: Build debug APK
-        run: gradle assembleDebug --no-daemon
+        run: |
+          set -o pipefail
+          gradle assembleDebug --no-daemon --stacktrace 2>&1 | tee build.log
+
+      - name: Surface failure as annotations
+        if: failure()
+        run: |
+          echo "----- key error lines -----"
+          grep -E "error:|FAILURE|Execution failed|Caused by|^e: |^> Task .*FAILED" build.log | tail -n 10 > errors.txt || true
+          if [ ! -s errors.txt ]; then
+            tail -n 10 build.log > errors.txt
+          fi
+          while IFS= read -r line; do
+            safe=$(echo "$line" | cut -c1-400)
+            echo "::error::${safe}"
+          done < errors.txt
+
+      - name: Upload build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-log
+          path: build.log
+          if-no-files-found: warn
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
