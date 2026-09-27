@@ -22,11 +22,8 @@
             </intent-filter>
         </activity>
 
-        <service
-            android:name="androidx.work.impl.background.systemjob.SystemJobService"
-            android:exported="false"
-            tools:node="merge"
-            xmlns:tools="http://schemas.android.com/tools" />
+        <!-- WorkManager's library manifest already declares SystemJobService;
+             no manual entry needed here. -->
 
     </application>
 
