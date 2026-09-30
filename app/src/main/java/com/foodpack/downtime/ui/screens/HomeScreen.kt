@@ -17,6 +17,7 @@ import com.foodpack.downtime.data.DowntimeEntry
 import com.foodpack.downtime.data.DowntimeRepository
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import java.util.Calendar
 import java.util.concurrent.TimeUnit
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -29,7 +30,18 @@ fun HomeScreen(
 ) {
     val scope = rememberCoroutineScope()
     val openTimers by repository.observeOpenTimers().collectAsState(initial = emptyList())
+    val allEntries by repository.observeAll().collectAsState(initial = emptyList())
     val unsyncedCount by repository.observeUnsyncedCount().collectAsState(initial = 0)
+
+    // Recompute today's totals every 30s so a running stop keeps nudging the total up.
+    var tick by remember { mutableStateOf(0) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(30_000)
+            tick++
+        }
+    }
+    val todayStats = remember(allEntries, openTimers, tick) { computeTodayStats(allEntries, openTimers) }
 
     Scaffold(
         topBar = {
@@ -62,6 +74,9 @@ fun HomeScreen(
                 Text("+ Log Issue / Downtime", fontSize = 22.sp, fontWeight = FontWeight.Bold)
             }
 
+            Spacer(modifier = Modifier.height(16.dp))
+
+            TodayStatsCard(stats = todayStats)
             Spacer(modifier = Modifier.height(16.dp))
 
             if (unsyncedCount > 0) {
@@ -130,6 +145,70 @@ private fun OpenTimerCard(entry: DowntimeEntry, onStop: () -> Unit) {
             }
             Button(onClick = onStop) {
                 Text("Stop")
+            }
+        }
+    }
+}
+
+private data class TodayStats(
+    val totalMinutes: Int,
+    val topReason: String?,
+    val topReasonMinutes: Int
+)
+
+/**
+ * Sums today's downtime (closed entries by their recorded duration, open
+ * timers by their live elapsed time) and finds which fault cost the most
+ * minutes today.
+ */
+private fun computeTodayStats(all: List<DowntimeEntry>, open: List<DowntimeEntry>): TodayStats {
+    val cal = Calendar.getInstance()
+    cal.set(Calendar.HOUR_OF_DAY, 0); cal.set(Calendar.MINUTE, 0)
+    cal.set(Calendar.SECOND, 0); cal.set(Calendar.MILLISECOND, 0)
+    val startOfDay = cal.timeInMillis
+    val now = System.currentTimeMillis()
+
+    val openIds = open.map { it.id }.toSet()
+    val minutesByReason = mutableMapOf<String, Int>()
+    var total = 0
+
+    for (entry in all) {
+        if (entry.createdAt < startOfDay) continue
+        if (entry.id in openIds) continue // counted below from live open list
+        val minutes = entry.durationMinutes ?: 0
+        total += minutes
+        minutesByReason[entry.reason] = (minutesByReason[entry.reason] ?: 0) + minutes
+    }
+    for (entry in open) {
+        if (entry.createdAt < startOfDay) continue
+        val minutes = ((now - (entry.startTime ?: entry.createdAt)) / 60_000L).toInt().coerceAtLeast(0)
+        total += minutes
+        minutesByReason[entry.reason] = (minutesByReason[entry.reason] ?: 0) + minutes
+    }
+
+    val top = minutesByReason.maxByOrNull { it.value }
+    return TodayStats(total, top?.key, top?.value ?: 0)
+}
+
+@Composable
+private fun TodayStatsCard(stats: TodayStats) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text("Today's Downtime", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(
+                "${stats.totalMinutes} min",
+                fontSize = 28.sp,
+                fontWeight = FontWeight.Bold
+            )
+            if (stats.topReason != null && stats.topReasonMinutes > 0) {
+                Spacer(modifier = Modifier.height(8.dp))
+                HorizontalDivider()
+                Spacer(modifier = Modifier.height(8.dp))
+                Text("Top Issue Today", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp)
+                Text(
+                    "${stats.topReason} — ${stats.topReasonMinutes} min",
+                    fontWeight = FontWeight.SemiBold
+                )
             }
         }
     }

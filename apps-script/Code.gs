@@ -19,8 +19,8 @@
 const SHEET_NAME = "Downtime Log";
 
 const HEADERS = [
-  "Date", "Time", "Operator", "Line", "Station", "Part / Sub-part",
-  "Sub-issue", "Reason", "Note", "Duration (min)", "Start", "End", "Received At"
+  "Date", "Time", "Operator", "Line", "Category", "Equipment",
+  "Fault", "Note", "Duration (min)", "Start", "End", "Received At"
 ];
 
 function doPost(e) {
@@ -35,7 +35,6 @@ function doPost(e) {
       data.line || "",
       data.station || "",
       data.part || "",
-      data.subIssue || "",
       data.reason || "",
       data.note || "",
       data.durationMinutes === null || data.durationMinutes === undefined ? "" : data.durationMinutes,

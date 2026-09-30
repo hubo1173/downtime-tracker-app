@@ -12,12 +12,19 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.foodpack.downtime.data.Constants
 import com.foodpack.downtime.data.DowntimeEntry
 import com.foodpack.downtime.data.DowntimeRepository
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
+/**
+ * Line -> Category -> Equipment (Machinery only) -> Fault.
+ * Each step only appears once the previous one is answered, so the
+ * operator never sees more than one decision at a time and the whole
+ * flow fits comfortably in a few taps.
+ */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun LogEntryScreen(
@@ -27,39 +34,49 @@ fun LogEntryScreen(
     val scope = rememberCoroutineScope()
 
     var line by remember { mutableStateOf(Constants.LINES.first()) }
-    var station by remember { mutableStateOf(Constants.STATIONS.first()) }
-    var part by remember { mutableStateOf<String?>(null) }
-    var subIssue by remember { mutableStateOf<String?>(null) }
-    var reason by remember { mutableStateOf<String?>(null) }
-    var customReason by remember { mutableStateOf("") }
+    var category by remember { mutableStateOf<String?>(null) }
+    var equipment by remember { mutableStateOf<String?>(null) }
+    var fault by remember { mutableStateOf<String?>(null) }
+    var customFault by remember { mutableStateOf("") }
     var note by remember { mutableStateOf("") }
     var manualMinutes by remember { mutableStateOf("") }
     var saving by remember { mutableStateOf(false) }
 
-    // Reset dependent fields when station changes
-    LaunchedEffect(station) {
-        part = null
-        subIssue = null
-        reason = null
+    val needsEquipment = category?.let { Constants.hasEquipmentStep(it) } == true
+
+    // Resetting a step clears everything that depends on it.
+    fun onCategoryChange(newCategory: String) {
+        category = newCategory
+        equipment = null
+        fault = null
+        customFault = ""
+    }
+    fun onEquipmentChange(newEquipment: String) {
+        equipment = newEquipment
+        fault = null
+        customFault = ""
     }
 
-    val quickReasons = Constants.quickReasonsFor(station)
-    val isLabeler = station == "Labeler"
-    val isMaterial = station == "Material Supply (Prep)"
+    val faultOptions: List<String> = when {
+        category == null -> emptyList()
+        needsEquipment && equipment != null -> Constants.faultsFor(category!!, equipment!!)
+        !needsEquipment -> Constants.faultsFor(category!!)
+        else -> emptyList()
+    }
 
-    fun effectiveReason(): String? =
-        if (reason == "Other") customReason.ifBlank { null } else reason
+    fun effectiveFault(): String? =
+        if (fault == "Other") customFault.ifBlank { null } else fault
 
     fun buildEntry(now: Long): DowntimeEntry? {
-        val r = effectiveReason() ?: return null
+        val f = effectiveFault() ?: return null
+        val cat = category ?: return null
         return DowntimeEntry(
             createdAt = now,
-            operatorName = "", // filled in just before saving, from settings
+            operatorName = "", // filled just before saving, from settings
             line = line,
-            station = station,
-            part = if (isLabeler) part else null,
-            subIssue = if (isMaterial) subIssue else null,
-            reason = r,
+            station = cat,
+            part = if (needsEquipment) equipment else null,
+            reason = f,
             note = note
         )
     }
@@ -85,34 +102,46 @@ fun LogEntryScreen(
             SectionLabel("Line")
             ChipRow(options = Constants.LINES, selected = line, onSelect = { line = it })
 
-            Spacer(modifier = Modifier.height(20.dp))
-            SectionLabel("Station")
-            FlowRowChips(options = Constants.STATIONS, selected = station, onSelect = { station = it })
+            Spacer(modifier = Modifier.height(24.dp))
+            SectionLabel("What caused the stop?")
+            FlowRowChips(
+                options = Constants.CATEGORIES,
+                selected = category,
+                onSelect = { onCategoryChange(it) },
+                big = true
+            )
 
-            if (isLabeler) {
-                Spacer(modifier = Modifier.height(20.dp))
-                SectionLabel("Labeler part")
-                FlowRowChips(options = Constants.LABELER_PARTS, selected = part, onSelect = { part = it })
-            }
-
-            if (isMaterial) {
-                Spacer(modifier = Modifier.height(20.dp))
-                SectionLabel("What happened")
-                FlowRowChips(options = Constants.MATERIAL_SUB_ISSUES, selected = subIssue, onSelect = { subIssue = it })
-            }
-
-            Spacer(modifier = Modifier.height(20.dp))
-            SectionLabel("Reason")
-            FlowRowChips(options = quickReasons + "Other", selected = reason, onSelect = { reason = it })
-
-            if (reason == "Other") {
-                Spacer(modifier = Modifier.height(8.dp))
-                OutlinedTextField(
-                    value = customReason,
-                    onValueChange = { customReason = it },
-                    label = { Text("Describe the reason") },
-                    modifier = Modifier.fillMaxWidth()
+            if (needsEquipment) {
+                Spacer(modifier = Modifier.height(24.dp))
+                SectionLabel("Equipment")
+                FlowRowChips(
+                    options = Constants.equipmentFor(category!!),
+                    selected = equipment,
+                    onSelect = { onEquipmentChange(it) },
+                    big = true
                 )
+            }
+
+            val showFaults = category != null && (!needsEquipment || equipment != null)
+            if (showFaults) {
+                Spacer(modifier = Modifier.height(24.dp))
+                SectionLabel("Specifically")
+                FlowRowChips(
+                    options = faultOptions,
+                    selected = fault,
+                    onSelect = { fault = it },
+                    big = true
+                )
+
+                if (fault == "Other") {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value = customFault,
+                        onValueChange = { customFault = it },
+                        label = { Text("Describe it") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(20.dp))
@@ -140,10 +169,10 @@ fun LogEntryScreen(
                         onDone()
                     }
                 },
-                enabled = effectiveReason() != null && !saving,
-                modifier = Modifier.fillMaxWidth().height(56.dp)
+                enabled = effectiveFault() != null && !saving,
+                modifier = Modifier.fillMaxWidth().height(64.dp)
             ) {
-                Text("Start Downtime Timer")
+                Text("Start Downtime Timer", fontSize = 18.sp, fontWeight = FontWeight.Bold)
             }
 
             Spacer(modifier = Modifier.height(24.dp))
@@ -176,7 +205,7 @@ fun LogEntryScreen(
                         onDone()
                     }
                 },
-                enabled = effectiveReason() != null && !saving,
+                enabled = effectiveFault() != null && !saving,
                 modifier = Modifier.fillMaxWidth().height(56.dp)
             ) {
                 Text("Save Entry (no timer)")
@@ -189,7 +218,7 @@ fun LogEntryScreen(
 
 @Composable
 private fun SectionLabel(text: String) {
-    Text(text, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(bottom = 8.dp))
+    Text(text, fontWeight = FontWeight.SemiBold, fontSize = 16.sp, modifier = Modifier.padding(bottom = 8.dp))
 }
 
 @Composable
@@ -199,7 +228,7 @@ private fun ChipRow(options: List<String>, selected: String?, onSelect: (String)
             FilterChip(
                 selected = option == selected,
                 onClick = { onSelect(option) },
-                label = { Text(option) }
+                label = { Text(option, fontSize = 15.sp) }
             )
         }
     }
@@ -207,13 +236,24 @@ private fun ChipRow(options: List<String>, selected: String?, onSelect: (String)
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun FlowRowChips(options: List<String>, selected: String?, onSelect: (String) -> Unit) {
+private fun FlowRowChips(
+    options: List<String>,
+    selected: String?,
+    onSelect: (String) -> Unit,
+    big: Boolean = false
+) {
     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         options.forEach { option ->
             FilterChip(
                 selected = option == selected,
                 onClick = { onSelect(option) },
-                label = { Text(option) }
+                label = {
+                    Text(
+                        option,
+                        fontSize = if (big) 16.sp else 14.sp,
+                        modifier = if (big) Modifier.padding(vertical = 6.dp) else Modifier
+                    )
+                }
             )
         }
     }
