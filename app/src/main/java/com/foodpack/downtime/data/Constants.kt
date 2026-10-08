@@ -68,7 +68,7 @@ object Constants {
             "Depositor",
             "Fish Knife",
             "Utensils / Scoop",
-            "Conveyor",
+            "Conveyor belt",
             "Printer",
             "Sensors",
             "Scissors",
@@ -82,7 +82,7 @@ object Constants {
         "Depositor" to "🥣",
         "Fish Knife" to "🔪",
         "Utensils / Scoop" to "🥄",
-        "Conveyor" to "➡️",
+        "Conveyor belt" to "➡️",
         "Printer" to "🖨️",
         "Sensors" to "📡",
         "Scissors" to "✂️",
@@ -109,8 +109,7 @@ object Constants {
             "Blue drive roller worn or broken",
             "White roller glue build-up",
             "Transfer belt slipping / torn",
-            "Transfer belt glue build-up",
-            "Sponge wheel not sticking label",
+            "Transfer belt labels not sticking",
             "Orange sponge wheel damaged",
             "Sensor / eye misread",
             "Air leak / pneumatic issue",
@@ -134,7 +133,7 @@ object Constants {
             "Missing / not enough",
             "Wrong size for product"
         ),
-        "Machinery|Conveyor" to listOf(
+        "Machinery|Conveyor belt" to listOf(
             "Conveyor belt issue / wrong mode",
             "Conveyor jam",
             "Mechanical fault"
