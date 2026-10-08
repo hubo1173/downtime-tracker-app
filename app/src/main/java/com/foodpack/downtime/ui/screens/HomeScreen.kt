@@ -26,7 +26,9 @@ fun HomeScreen(
     repository: DowntimeRepository,
     onLogNew: () -> Unit,
     onOpenHistory: () -> Unit,
-    onOpenSettings: () -> Unit
+    onOpenSettings: () -> Unit,
+    onOpenLineSpeed: () -> Unit,
+    onOpenSleeveCalc: () -> Unit
 ) {
     val scope = rememberCoroutineScope()
     val openTimers by repository.observeOpenTimers().collectAsState(initial = emptyList())
@@ -65,18 +67,39 @@ fun HomeScreen(
                 .padding(20.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Button(
-                onClick = onLogNew,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(88.dp)
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.fillMaxWidth()
             ) {
-                Text("+ Log Issue / Downtime", fontSize = 22.sp, fontWeight = FontWeight.Bold)
+                Button(
+                    onClick = onLogNew,
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(64.dp)
+                ) {
+                    Text("+ Log Issue / Downtime", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                }
+                Button(
+                    onClick = onOpenLineSpeed,
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(64.dp)
+                ) {
+                    Text("⏱️ Line Speed", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
             TodayStatsCard(stats = todayStats)
+            Spacer(modifier = Modifier.height(12.dp))
+
+            OutlinedButton(
+                onClick = onOpenSleeveCalc,
+                modifier = Modifier.fillMaxWidth().height(52.dp)
+            ) {
+                Text("📦 Poke Bowl Sleeve Calculator", fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+            }
             Spacer(modifier = Modifier.height(16.dp))
 
             if (unsyncedCount > 0) {

@@ -49,12 +49,13 @@ object Constants {
         "Machinery" to listOf(
             "Labeler",
             "Depositor",
-            "Fish Knife Depositor",
+            "Fish Knife",
+            "Utensils / Scoop",
             "Conveyor",
             "Printer",
             "Sensors",
             "Scissors",
-            "Utensils / Scoop",
+            "YCM Scales",
             "Other Machinery"
         )
     )
@@ -62,12 +63,13 @@ object Constants {
     val EQUIPMENT_ICONS: Map<String, String> = mapOf(
         "Labeler" to "🏷️",
         "Depositor" to "🥣",
-        "Fish Knife Depositor" to "🔪",
+        "Fish Knife" to "🔪",
+        "Utensils / Scoop" to "🥄",
         "Conveyor" to "➡️",
         "Printer" to "🖨️",
         "Sensors" to "📡",
         "Scissors" to "✂️",
-        "Utensils / Scoop" to "🥄",
+        "YCM Scales" to "⚖️",
         "Other Machinery" to "⚙️"
     )
 
@@ -104,11 +106,16 @@ object Constants {
             "Awaiting cleaning / wash",
             "Mechanical fault"
         ),
-        "Machinery|Fish Knife Depositor" to listOf(
+        "Machinery|Fish Knife" to listOf(
             "Clogged / jammed",
             "Blade issue",
             "Weight / calibration off",
             "Mechanical fault"
+        ),
+        "Machinery|Utensils / Scoop" to listOf(
+            "Broken / worn",
+            "Missing / not enough",
+            "Wrong size for product"
         ),
         "Machinery|Conveyor" to listOf(
             "Conveyor belt issue / wrong mode",
@@ -120,7 +127,8 @@ object Constants {
             "Printer not connecting",
             "Printer head issue / air leak",
             "Ribbon or cartridge issue",
-            "Printer screen fault"
+            "Printer screen fault",
+            "Marco screen freeze / frozen"
         ),
         "Machinery|Sensors" to listOf(
             "Sensor needs re-teaching",
@@ -133,10 +141,10 @@ object Constants {
             "Jammed",
             "Mechanical fault"
         ),
-        "Machinery|Utensils / Scoop" to listOf(
-            "Broken / worn",
-            "Missing / not enough",
-            "Wrong size for product"
+        "Machinery|YCM Scales" to listOf(
+            "Not working",
+            "Inaccurate / needs calibration",
+            "Mechanical fault"
         ),
         "Machinery|Other Machinery" to listOf(
             "Breakdown",
@@ -161,7 +169,8 @@ object Constants {
             "Prep didn't make enough",
             "Wrong material issued",
             "Missing ingredient",
-            "Ran out mid-shift"
+            "Ran out mid-shift",
+            "Tray pack packaging issued late"
         ),
         "Changeover" to listOf(
             "Product settings changeover",
@@ -176,7 +185,8 @@ object Constants {
         "Quality" to listOf(
             "Quality hold",
             "Rework",
-            "Inspection"
+            "Inspection",
+            "Camera verification / QAS issue"
         ),
         "Warehouse" to listOf(
             "Waiting on warehouse",

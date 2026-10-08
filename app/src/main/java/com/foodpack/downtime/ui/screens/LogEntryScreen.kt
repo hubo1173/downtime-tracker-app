@@ -9,6 +9,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -252,11 +253,16 @@ private fun FlowRowChips(
                 selected = option == selected,
                 onClick = { onSelect(option) },
                 label = {
-                    Text(
-                        if (icon != null) "$icon  $option" else option,
-                        fontSize = if (big) 16.sp else 14.sp,
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
                         modifier = if (big) Modifier.padding(vertical = 6.dp) else Modifier
-                    )
+                    ) {
+                        if (icon != null) {
+                            Text(icon, fontSize = if (big) 22.sp else 19.sp)
+                            Spacer(modifier = Modifier.width(6.dp))
+                        }
+                        Text(option, fontSize = if (big) 16.sp else 14.sp)
+                    }
                 }
             )
         }
