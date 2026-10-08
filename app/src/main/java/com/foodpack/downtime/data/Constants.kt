@@ -128,7 +128,7 @@ object Constants {
             "Printer head issue / air leak",
             "Ribbon or cartridge issue",
             "Printer screen fault",
-            "Marco screen freeze / frozen"
+            "Marco screen frozen"
         ),
         "Machinery|Sensors" to listOf(
             "Sensor needs re-teaching",

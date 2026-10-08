@@ -12,11 +12,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 /**
- * How many sleeves of poke bowls to pull for an order: 50 bowls per sleeve,
- * so sleeves needed = order amount ÷ 50 (rounded up), with any leftover
- * packs shown separately. Standalone utility — doesn't save to the log.
+ * How many sleeves (and boxes) of poke bowl bases to pull for an order:
+ * 50 bases per sleeve, 300 bases per box (= 6 sleeves per box). Standalone
+ * utility — doesn't save to the log.
  */
 private const val PACKS_PER_SLEEVE = 50
+private const val SLEEVES_PER_BOX = 6
+private const val PACKS_PER_BOX = PACKS_PER_SLEEVE * SLEEVES_PER_BOX // 300
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -27,6 +29,8 @@ fun SleeveCalculatorScreen(onBack: () -> Unit) {
     val fullSleeves = orderAmount?.let { it / PACKS_PER_SLEEVE } ?: 0
     val remainder = orderAmount?.let { it % PACKS_PER_SLEEVE } ?: 0
     val sleevesNeeded = orderAmount?.let { (it + PACKS_PER_SLEEVE - 1) / PACKS_PER_SLEEVE } ?: 0
+    val fullBoxes = sleevesNeeded / SLEEVES_PER_BOX
+    val leftoverSleeves = sleevesNeeded % SLEEVES_PER_BOX
 
     Scaffold(
         topBar = {
@@ -47,7 +51,7 @@ fun SleeveCalculatorScreen(onBack: () -> Unit) {
                 .padding(20.dp)
         ) {
             Text(
-                "Enter the order amount — we'll work out how many sleeves to pull ($PACKS_PER_SLEEVE poke bowls per sleeve).",
+                "Enter the order amount — we'll work out how many sleeves ($PACKS_PER_SLEEVE bases/sleeve) and boxes ($PACKS_PER_BOX bases/box = $SLEEVES_PER_BOX sleeves) to pull.",
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(bottom = 16.dp)
             )
@@ -55,7 +59,7 @@ fun SleeveCalculatorScreen(onBack: () -> Unit) {
             OutlinedTextField(
                 value = orderAmountText,
                 onValueChange = { orderAmountText = it.filter { c -> c.isDigit() } },
-                label = { Text("Order amount (poke bowls)") },
+                label = { Text("Order amount (poke bowl bases)") },
                 modifier = Modifier.fillMaxWidth(),
                 textStyle = androidx.compose.ui.text.TextStyle(fontSize = 22.sp)
             )
@@ -87,6 +91,34 @@ fun SleeveCalculatorScreen(onBack: () -> Unit) {
                                 "$fullSleeves full sleeve${if (fullSleeves == 1) "" else "s"} + $remainder pack${if (remainder == 1) "" else "s"} from the next sleeve",
                                 color = MaterialTheme.colorScheme.tertiary,
                                 fontWeight = FontWeight.SemiBold
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(16.dp))
+                        HorizontalDivider()
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        Text("That's in boxes", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        if (leftoverSleeves == 0) {
+                            Text(
+                                "$fullBoxes box${if (fullBoxes == 1) "" else "es"}",
+                                fontSize = 32.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                "exact — $SLEEVES_PER_BOX sleeves per box",
+                                color = MaterialTheme.colorScheme.secondary,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        } else {
+                            Text(
+                                "$fullBoxes box${if (fullBoxes == 1) "" else "es"} + $leftoverSleeves sleeve${if (leftoverSleeves == 1) "" else "s"}",
+                                fontSize = 32.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                "$SLEEVES_PER_BOX sleeves per box",
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
