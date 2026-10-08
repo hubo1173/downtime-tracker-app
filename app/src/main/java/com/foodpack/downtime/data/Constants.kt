@@ -44,7 +44,7 @@ object Constants {
         "Changeover",
         "Production Plan",
         "Quality",
-        "Warehouse",
+        "Tray pack",
         "Other"
     )
 
@@ -57,7 +57,7 @@ object Constants {
         "Changeover" to "🔄",
         "Production Plan" to "📋",
         "Quality" to "✅",
-        "Warehouse" to "🏭",
+        "Tray pack" to "📥",
         "Other" to "⚠️"
     )
 
@@ -202,11 +202,12 @@ object Constants {
             "Quality hold",
             "Rework",
             "Inspection",
-            "Camera verification / QAS issue"
+            "QAS Camera verification time"
         ),
-        "Warehouse" to listOf(
+        "Tray pack" to listOf(
             "Waiting on warehouse",
-            "Storage / logistics issue"
+            "Storage / logistics issue",
+            "Metal hit on Loma, waiting for QAS"
         ),
         "Other" to listOf(
             "Power / electrical"
