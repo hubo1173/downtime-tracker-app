@@ -1,5 +1,5 @@
 /**
- * Downtime Log — Google Sheets receiver.
+ * Unit K Pulse — Google Sheets + Drive receiver.
  *
  * SETUP (one time, by a supervisor):
  * 1. Create (or open) a Google Sheet for the log. Name the file (and/or
@@ -24,10 +24,25 @@
  * makes sure two phones submitting in the same instant don't collide;
  * each request just waits its turn (normally a few milliseconds) before
  * its row is appended.
+ *
+ * NOTES / REFERENCE FILES: the app's Notes section lets an operator
+ * attach a reference file (Word/OpenDocument/PDF — a labeler settings
+ * sheet, a scale calibration doc, etc.) to one of a few fixed folders.
+ * No one signs into Google on their phone for this — the file is base64
+ * -encoded, POSTed here just like a log entry, and this script drops it
+ * into the matching Drive subfolder (created on first use) next to the
+ * Sheet. Folders are listed/browsed the same way, via a GET request.
  */
 
 const SHEET_NAME = "Downtime Log";
 const LOCK_TIMEOUT_MS = 10000;
+const NOTES_ROOT_FOLDER_NAME = "Unit K Pulse Notes";
+const NOTE_FOLDERS = [
+  "YCM Scales Settings",
+  "Labeler Basic Checks",
+  "Line Manning",
+  "Production Plan"
+];
 
 const HEADERS = [
   "Date", "Time", "Operator", "Line", "Category", "Equipment",
@@ -44,8 +59,13 @@ function doPost(e) {
 
   try {
     const data = JSON.parse(e.postData.contents);
-    const sheet = getOrCreateSheet();
 
+    if (data.action === "uploadFile") {
+      return handleUploadFile(data);
+    }
+
+    // Default (no action field): a downtime log entry, same as always.
+    const sheet = getOrCreateSheet();
     sheet.appendRow([
       data.date || "",
       data.time || "",
@@ -70,8 +90,17 @@ function doPost(e) {
 }
 
 function doGet(e) {
+  const action = e.parameter && e.parameter.action;
+
+  if (action === "listFiles") {
+    return handleListFiles(e.parameter.folder || "");
+  }
+  if (action === "listFolders") {
+    return jsonResponse({ status: "ok", folders: NOTE_FOLDERS });
+  }
+
   // Simple health check — open the /exec URL in a browser to confirm it's live.
-  return jsonResponse({ status: "ok", message: "Downtime Log endpoint is running." });
+  return jsonResponse({ status: "ok", message: "Unit K Pulse endpoint is running." });
 }
 
 function getOrCreateSheet() {
@@ -85,6 +114,81 @@ function getOrCreateSheet() {
     sheet.setFrozenRows(1);
   }
   return sheet;
+}
+
+/** The Drive folder the bound Sheet lives in. */
+function getSpreadsheetParentFolder() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const file = DriveApp.getFileById(ss.getId());
+  const parents = file.getParents();
+  return parents.hasNext() ? parents.next() : DriveApp.getRootFolder();
+}
+
+function getOrCreateChildFolder(parent, name) {
+  const existing = parent.getFoldersByName(name);
+  if (existing.hasNext()) {
+    return existing.next();
+  }
+  return parent.createFolder(name);
+}
+
+/** The fixed subfolder (YCM Scales Settings, etc.) a note file lives in. */
+function getNoteFolder(folderName) {
+  if (NOTE_FOLDERS.indexOf(folderName) === -1) {
+    throw new Error("Unknown notes folder: " + folderName);
+  }
+  const root = getOrCreateChildFolder(getSpreadsheetParentFolder(), NOTES_ROOT_FOLDER_NAME);
+  return getOrCreateChildFolder(root, folderName);
+}
+
+function handleUploadFile(data) {
+  const folderName = data.folder || "";
+  const fileName = data.fileName || "";
+  const mimeType = data.mimeType || "application/octet-stream";
+  const base64Data = data.base64Data || "";
+
+  if (!fileName || !base64Data) {
+    return jsonResponse({ status: "error", message: "Missing fileName or file data." });
+  }
+
+  const folder = getNoteFolder(folderName);
+
+  // Replace an existing file of the same name, so re-uploading an updated
+  // settings sheet doesn't pile up duplicate copies.
+  const existing = folder.getFilesByName(fileName);
+  while (existing.hasNext()) {
+    existing.next().setTrashed(true);
+  }
+
+  const bytes = Utilities.base64Decode(base64Data);
+  const blob = Utilities.newBlob(bytes, mimeType, fileName);
+  const file = folder.createFile(blob);
+
+  return jsonResponse({
+    status: "ok",
+    fileUrl: file.getUrl(),
+    fileName: file.getName()
+  });
+}
+
+function handleListFiles(folderName) {
+  try {
+    const folder = getNoteFolder(folderName);
+    const files = folder.getFiles();
+    const result = [];
+    while (files.hasNext()) {
+      const f = files.next();
+      result.push({
+        name: f.getName(),
+        url: f.getUrl(),
+        mimeType: f.getMimeType(),
+        updatedAt: f.getLastUpdated().toISOString()
+      });
+    }
+    return jsonResponse({ status: "ok", files: result });
+  } catch (err) {
+    return jsonResponse({ status: "error", message: err.message });
+  }
 }
 
 function jsonResponse(obj) {

@@ -15,6 +15,23 @@ object Constants {
     // Production lines
     val LINES = (1..6).map { "Line $it" }
 
+    // Notes section: fixed Drive subfolders an operator can attach a
+    // reference file (settings sheet, calibration doc, etc.) to. Keep
+    // this in sync with NOTE_FOLDERS in apps-script/Code.gs.
+    val NOTE_FOLDERS = listOf(
+        "YCM Scales Settings",
+        "Labeler Basic Checks",
+        "Line Manning",
+        "Production Plan"
+    )
+
+    val NOTE_FOLDER_ICONS: Map<String, String> = mapOf(
+        "YCM Scales Settings" to "⚖️",
+        "Labeler Basic Checks" to "🏷️",
+        "Line Manning" to "👥",
+        "Production Plan" to "📋"
+    )
+
     // Top-level categories — what kind of thing caused the stop.
     // Based on recurring patterns in the Unit K downtime log: labeller/blade/glue
     // issues are the single biggest driver, followed by engineer response time,

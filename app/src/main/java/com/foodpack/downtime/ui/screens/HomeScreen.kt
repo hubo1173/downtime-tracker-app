@@ -28,7 +28,8 @@ fun HomeScreen(
     onOpenHistory: () -> Unit,
     onOpenSettings: () -> Unit,
     onOpenLineSpeed: () -> Unit,
-    onOpenSleeveCalc: () -> Unit
+    onOpenSleeveCalc: () -> Unit,
+    onOpenNotes: () -> Unit
 ) {
     val scope = rememberCoroutineScope()
     val openTimers by repository.observeOpenTimers().collectAsState(initial = emptyList())
@@ -48,7 +49,7 @@ fun HomeScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("🏷️ Unit K Downtime") },
+                title = { Text("📡 Unit K Pulse") },
                 actions = {
                     IconButton(onClick = onOpenHistory) {
                         Icon(Icons.Filled.History, contentDescription = "History")
@@ -99,6 +100,14 @@ fun HomeScreen(
                 modifier = Modifier.fillMaxWidth().height(52.dp)
             ) {
                 Text("📦 Poke Bowl Sleeve Calculator", fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+            }
+            Spacer(modifier = Modifier.height(10.dp))
+
+            OutlinedButton(
+                onClick = onOpenNotes,
+                modifier = Modifier.fillMaxWidth().height(52.dp)
+            ) {
+                Text("📝 Notes", fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
             }
             Spacer(modifier = Modifier.height(16.dp))
 
