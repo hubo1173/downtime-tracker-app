@@ -1,9 +1,12 @@
 package com.foodpack.downtime.ui.screens
 
+import android.content.ActivityNotFoundException
+import android.content.Intent
 import android.net.Uri
 import android.provider.OpenableColumns
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -152,7 +155,17 @@ fun NoteFolderScreen(folder: String, repository: DowntimeRepository, onBack: () 
                         items(files) { file ->
                             Card(modifier = Modifier.fillMaxWidth()) {
                                 Row(
-                                    modifier = Modifier.fillMaxWidth().padding(16.dp),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable {
+                                            try {
+                                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(file.url))
+                                                context.startActivity(intent)
+                                            } catch (e: ActivityNotFoundException) {
+                                                errorMessage = "No app found to open this file. Try opening it in Drive instead."
+                                            }
+                                        }
+                                        .padding(16.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Icon(
