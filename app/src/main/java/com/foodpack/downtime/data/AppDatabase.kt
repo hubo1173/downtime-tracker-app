@@ -5,7 +5,7 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 
-@Database(entities = [DowntimeEntry::class, HandoverEntry::class], version = 2, exportSchema = false)
+@Database(entities = [DowntimeEntry::class, HandoverEntry::class], version = 3, exportSchema = false)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun downtimeDao(): DowntimeDao
     abstract fun handoverDao(): HandoverDao
@@ -21,9 +21,12 @@ abstract class AppDatabase : RoomDatabase() {
                     "downtime.db"
                 )
                     // v1 -> v2 added the handover table and two new columns
-                    // on downtime_entries; there's no user-facing data worth
-                    // preserving through a schema change on this internal
-                    // tool, so just rebuild rather than hand-write a Migration.
+                    // on downtime_entries; v2 -> v3 added the same
+                    // sheetRowCreated/pendingDelete pair to handover_entries
+                    // for Handover edit/delete support. There's no
+                    // user-facing data worth preserving through a schema
+                    // change on this internal tool, so just rebuild rather
+                    // than hand-write a Migration.
                     .fallbackToDestructiveMigration()
                     .build().also { INSTANCE = it }
             }

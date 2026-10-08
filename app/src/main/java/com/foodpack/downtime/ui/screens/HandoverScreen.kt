@@ -3,6 +3,7 @@ package com.foodpack.downtime.ui.screens
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -17,7 +18,8 @@ import androidx.compose.ui.unit.sp
 fun HandoverScreen(
     onBack: () -> Unit,
     onOpenMorning: () -> Unit,
-    onOpenEvening: () -> Unit
+    onOpenEvening: () -> Unit,
+    onOpenHistory: () -> Unit
 ) {
     Scaffold(
         topBar = {
@@ -26,6 +28,11 @@ fun HandoverScreen(
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                actions = {
+                    IconButton(onClick = onOpenHistory) {
+                        Icon(Icons.Filled.History, contentDescription = "Handover History")
                     }
                 }
             )

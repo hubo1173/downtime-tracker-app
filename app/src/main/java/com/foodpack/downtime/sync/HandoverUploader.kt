@@ -12,7 +12,11 @@ import java.util.concurrent.TimeUnit
 /**
  * Posts one shift handover (Morning or Evening) to the same Apps Script
  * Web App the downtime log and Notes already use, under action
- * "morningHandover" / "eveningHandover".
+ * "morningHandover" / "eveningHandover". Edits and deletes of an
+ * already-synced entry use "updateMorningHandover" / "deleteMorningHandover"
+ * (and the Evening equivalents) — the script finds the matching row by the
+ * hidden Entry ID and updates or removes it in place, same pattern as the
+ * Downtime Log.
  */
 class HandoverUploader(private val webhookUrl: String) {
 
@@ -21,12 +25,29 @@ class HandoverUploader(private val webhookUrl: String) {
         .readTimeout(15, TimeUnit.SECONDS)
         .build()
 
-    fun upload(entry: HandoverEntry): Result<Unit> {
+    fun upload(entry: HandoverEntry): Result<Unit> = post(toJson(entry))
+
+    /** Re-sends an already-synced entry so the script overwrites its row in place. */
+    fun update(entry: HandoverEntry): Result<Unit> {
+        val action = if (entry.type == HandoverType.MORNING) "updateMorningHandover" else "updateEveningHandover"
+        return post(toJson(entry).apply { put("action", action) })
+    }
+
+    /** Asks the script to delete the row matching this entry's ID. */
+    fun delete(entry: HandoverEntry): Result<Unit> {
+        val action = if (entry.type == HandoverType.MORNING) "deleteMorningHandover" else "deleteEveningHandover"
+        val json = JSONObject().apply {
+            put("action", action)
+            put("id", entry.id)
+        }
+        return post(json)
+    }
+
+    private fun post(json: JSONObject): Result<Unit> {
         if (webhookUrl.isBlank()) {
             return Result.failure(IllegalStateException("No Google Sheet link configured yet (see Settings)."))
         }
         return try {
-            val json = toJson(entry)
             val body = json.toString().toRequestBody("application/json".toMediaType())
             val request = Request.Builder().url(webhookUrl).post(body).build()
             client.newCall(request).execute().use { response ->

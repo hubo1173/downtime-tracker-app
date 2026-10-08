@@ -58,8 +58,23 @@ class SyncWorker(context: Context, params: WorkerParameters) : CoroutineWorker(c
         }
 
         val handoverUploader = HandoverUploader(webhookUrl)
+
+        for (entry in handoverDao.getPendingDeletes()) {
+            if (!entry.sheetRowCreated) {
+                handoverDao.delete(entry)
+                continue
+            }
+            val result = handoverUploader.delete(entry)
+            if (result.isSuccess) {
+                handoverDao.delete(entry)
+            } else {
+                allOk = false
+                handoverDao.markSyncFailed(entry.id, result.exceptionOrNull()?.message ?: "Unknown error")
+            }
+        }
+
         for (entry in handoverDao.getUnsynced()) {
-            val result = handoverUploader.upload(entry)
+            val result = if (entry.sheetRowCreated) handoverUploader.update(entry) else handoverUploader.upload(entry)
             if (result.isSuccess) {
                 handoverDao.markSynced(entry.id)
             } else {

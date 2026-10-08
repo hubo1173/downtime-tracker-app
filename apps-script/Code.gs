@@ -42,7 +42,10 @@
  *
  * SHIFT HANDOVER: the Morning Update and End of Shift Update each post
  * to their own sheet tab ("Morning Handover" / "Evening Handover"),
- * created automatically on first use.
+ * created automatically on first use. Both carry a hidden "Entry ID" in
+ * their last column too, so edits/deletes from the app's Handover
+ * History screen find and update/remove the right row, same as the
+ * Downtime Log.
  */
 
 const SHEET_NAME = "Downtime Log";
@@ -63,6 +66,9 @@ const HEADERS = [
 ];
 const ENTRY_ID_COLUMN = HEADERS.length; // 1-based column number
 
+// "Entry ID" is last on both Handover sheets too, same reasoning as the
+// Downtime Log — it lets an edit or delete sent from the phone find the
+// right row without disturbing any existing column positions.
 const MORNING_SHEET_NAME = "Morning Handover";
 const MORNING_HEADERS = [
   "Date", "Operator",
@@ -76,8 +82,9 @@ const MORNING_HEADERS = [
   "Absence", "Absence Names", "RTW", "RTW Names", "Not On Rota", "Not On Rota Names",
   "Risk To Service", "Risk Detail",
   "Agency Collation", "Agency Prep", "Agency Hygiene", "Agency Fridge", "Agency Packaging Store",
-  "Received At"
+  "Received At", "Entry ID"
 ];
+const MORNING_ENTRY_ID_COLUMN = MORNING_HEADERS.length;
 
 const EVENING_SHEET_NAME = "Evening Handover";
 const EVENING_HEADERS = [
@@ -86,8 +93,9 @@ const EVENING_HEADERS = [
   "Service Score %", "Efficiency %",
   "Team A Finished", "Team B Finished", "Team C Finished", "Collation Finished", "Tray Up Sent By",
   "Shorts", "Shorts Detail", "Report Updated", "Report Detail", "AOB", "AOB Detail",
-  "Received At"
+  "Received At", "Entry ID"
 ];
+const EVENING_ENTRY_ID_COLUMN = EVENING_HEADERS.length;
 
 function doPost(e) {
   const lock = LockService.getScriptLock();
@@ -111,6 +119,14 @@ function doPost(e) {
         return handleHandover(data, MORNING_SHEET_NAME, MORNING_HEADERS, morningRow);
       case "eveningHandover":
         return handleHandover(data, EVENING_SHEET_NAME, EVENING_HEADERS, eveningRow);
+      case "updateMorningHandover":
+        return handleUpdateHandover(data, MORNING_SHEET_NAME, MORNING_HEADERS, MORNING_ENTRY_ID_COLUMN, morningRow);
+      case "deleteMorningHandover":
+        return handleDeleteHandover(data, MORNING_SHEET_NAME, MORNING_HEADERS, MORNING_ENTRY_ID_COLUMN);
+      case "updateEveningHandover":
+        return handleUpdateHandover(data, EVENING_SHEET_NAME, EVENING_HEADERS, EVENING_ENTRY_ID_COLUMN, eveningRow);
+      case "deleteEveningHandover":
+        return handleDeleteHandover(data, EVENING_SHEET_NAME, EVENING_HEADERS, EVENING_ENTRY_ID_COLUMN);
     }
 
     // Default (no action field): a new downtime log entry.
@@ -218,7 +234,8 @@ function morningRow(data) {
     yn(data.riskToService), data.riskToServiceDetail || "",
     numOrBlank(data.agencyCollation), numOrBlank(data.agencyPrep), numOrBlank(data.agencyHygiene),
     numOrBlank(data.agencyFridge), numOrBlank(data.agencyPackagingStore),
-    new Date()
+    new Date(),
+    data.id === null || data.id === undefined ? "" : data.id
   ];
 }
 
@@ -234,13 +251,36 @@ function eveningRow(data) {
     yn(data.shorts), data.shortsDetail || "",
     yn(data.reportUpdated), data.reportUpdatedDetail || "",
     yn(data.aob), data.aobDetail || "",
-    new Date()
+    new Date(),
+    data.id === null || data.id === undefined ? "" : data.id
   ];
 }
 
 function handleHandover(data, sheetName, headers, rowBuilder) {
   const sheet = getOrCreateNamedSheet(sheetName, headers);
   sheet.appendRow(rowBuilder(data));
+  return jsonResponse({ status: "ok" });
+}
+
+/** Edits an already-synced Handover row in place, found by its Entry ID —
+ *  same pattern as handleUpdateEntry for the Downtime Log. */
+function handleUpdateHandover(data, sheetName, headers, idColumn, rowBuilder) {
+  const sheet = getOrCreateNamedSheet(sheetName, headers);
+  const row = findRowByEntryId(sheet, idColumn, data.id);
+  if (row === -1) {
+    sheet.appendRow(rowBuilder(data));
+    return jsonResponse({ status: "ok", note: "Row not found, appended instead." });
+  }
+  sheet.getRange(row, 1, 1, idColumn - 1).setValues([rowBuilder(data).slice(0, idColumn - 1)]);
+  return jsonResponse({ status: "ok" });
+}
+
+function handleDeleteHandover(data, sheetName, headers, idColumn) {
+  const sheet = getOrCreateNamedSheet(sheetName, headers);
+  const row = findRowByEntryId(sheet, idColumn, data.id);
+  if (row !== -1) {
+    sheet.deleteRow(row);
+  }
   return jsonResponse({ status: "ok" });
 }
 

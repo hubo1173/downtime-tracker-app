@@ -20,6 +20,7 @@ class DowntimeRepository(private val context: Context) {
     fun observeUnsyncedCount(): Flow<Int> = dao.observeUnsyncedCount()
     fun observeHandovers(): Flow<List<HandoverEntry>> = handoverDao.observeAll()
     suspend fun getById(id: Long): DowntimeEntry? = dao.getById(id)
+    suspend fun getHandoverById(id: Long): HandoverEntry? = handoverDao.getById(id)
 
     suspend fun startTimer(entry: DowntimeEntry): Long {
         val id = dao.insert(entry.copy(startTime = entry.createdAt, isOpen = true))
@@ -68,6 +69,24 @@ class DowntimeRepository(private val context: Context) {
     suspend fun saveHandover(entry: HandoverEntry) {
         handoverDao.insert(entry)
         SyncScheduler.syncNow(context)
+    }
+
+    /** Overwrites an existing handover's fields and re-syncs it — a row
+     *  already on the Sheet gets updated in place, not duplicated. */
+    suspend fun editHandover(entry: HandoverEntry) {
+        handoverDao.update(entry.copy(synced = false))
+        SyncScheduler.syncNow(context)
+    }
+
+    /** Deletes a handover locally; if it had already reached the Sheet,
+     *  queues the matching row for deletion there too. */
+    suspend fun deleteHandover(entry: HandoverEntry) {
+        if (entry.sheetRowCreated) {
+            handoverDao.update(entry.copy(pendingDelete = true, synced = false))
+            SyncScheduler.syncNow(context)
+        } else {
+            handoverDao.delete(entry)
+        }
     }
 
     suspend fun retrySync() {

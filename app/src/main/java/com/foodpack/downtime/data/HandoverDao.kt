@@ -1,8 +1,10 @@
 package com.foodpack.downtime.data
 
 import androidx.room.Dao
+import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.Query
+import androidx.room.Update
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -11,13 +13,25 @@ interface HandoverDao {
     @Insert
     suspend fun insert(entry: HandoverEntry): Long
 
+    @Update
+    suspend fun update(entry: HandoverEntry)
+
+    @Delete
+    suspend fun delete(entry: HandoverEntry)
+
     @Query("SELECT * FROM handover_entries ORDER BY createdAt DESC")
     fun observeAll(): Flow<List<HandoverEntry>>
 
-    @Query("SELECT * FROM handover_entries WHERE synced = 0 ORDER BY createdAt ASC")
+    @Query("SELECT * FROM handover_entries WHERE id = :id")
+    suspend fun getById(id: Long): HandoverEntry?
+
+    @Query("SELECT * FROM handover_entries WHERE synced = 0 AND pendingDelete = 0 ORDER BY createdAt ASC")
     suspend fun getUnsynced(): List<HandoverEntry>
 
-    @Query("UPDATE handover_entries SET synced = 1, lastSyncError = NULL WHERE id = :id")
+    @Query("SELECT * FROM handover_entries WHERE pendingDelete = 1 ORDER BY createdAt ASC")
+    suspend fun getPendingDeletes(): List<HandoverEntry>
+
+    @Query("UPDATE handover_entries SET synced = 1, sheetRowCreated = 1, lastSyncError = NULL WHERE id = :id")
     suspend fun markSynced(id: Long)
 
     @Query("UPDATE handover_entries SET syncAttempts = syncAttempts + 1, lastSyncError = :error WHERE id = :id")

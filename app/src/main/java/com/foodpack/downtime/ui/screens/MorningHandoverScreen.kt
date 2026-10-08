@@ -22,9 +22,11 @@ import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MorningHandoverScreen(repository: DowntimeRepository, onDone: () -> Unit) {
+fun MorningHandoverScreen(repository: DowntimeRepository, entryId: Long? = null, onDone: () -> Unit) {
     val scope = rememberCoroutineScope()
     val today = remember { SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date()) }
+    var existing by remember { mutableStateOf<HandoverEntry?>(null) }
+    var loaded by remember { mutableStateOf(entryId == null) }
 
     var sheIncident by remember { mutableStateOf(false) }
     var sheIncidentDetail by remember { mutableStateOf("") }
@@ -72,40 +74,82 @@ fun MorningHandoverScreen(repository: DowntimeRepository, onDone: () -> Unit) {
 
     var saving by remember { mutableStateOf(false) }
 
+    // Edit mode: load the existing entry once and pre-fill every field.
+    LaunchedEffect(entryId) {
+        if (entryId != null) {
+            val entry = repository.getHandoverById(entryId)
+            existing = entry
+            if (entry != null) {
+                sheIncident = entry.sheIncident; sheIncidentDetail = entry.sheIncidentDetail
+                technicalIssue = entry.technicalIssue; technicalDetail = entry.technicalDetail
+                qualityIssue = entry.qualityIssue; qualityDetail = entry.qualityDetail
+                downtimeIssue = entry.downtimeIssue; downtimeDetail = entry.downtimeDetail
+                todaysVolume = entry.todaysVolume?.toString() ?: ""
+                tomorrowsVolume = entry.tomorrowsVolume?.toString() ?: ""
+                teamAPlanned = entry.teamAPlanned?.toString() ?: ""
+                teamAActual = entry.teamAActual?.toString() ?: ""
+                teamAFinishPlanned = entry.teamAFinishPlanned
+                teamAFinishActual = entry.teamAFinishActual
+                teamBPlanned = entry.teamBPlanned?.toString() ?: ""
+                teamBActual = entry.teamBActual?.toString() ?: ""
+                teamBFinishPlanned = entry.teamBFinishPlanned
+                teamBFinishActual = entry.teamBFinishActual
+                teamCPlanned = entry.teamCPlanned?.toString() ?: ""
+                teamCActual = entry.teamCActual?.toString() ?: ""
+                teamCFinishPlanned = entry.teamCFinishPlanned
+                teamCFinishActual = entry.teamCFinishActual
+                packingPpl = entry.packingPpl?.toString() ?: ""
+                packingTrainees = entry.packingTrainees?.toString() ?: ""
+                absence = entry.absence; absenceNames = entry.absenceNames
+                rtw = entry.rtw; rtwNames = entry.rtwNames
+                notOnRota = entry.notOnRota; notOnRotaNames = entry.notOnRotaNames
+                riskToService = entry.riskToService; riskToServiceDetail = entry.riskToServiceDetail
+                agencyCollation = entry.agencyCollation?.toString() ?: ""
+                agencyPrep = entry.agencyPrep?.toString() ?: ""
+                agencyHygiene = entry.agencyHygiene?.toString() ?: ""
+                agencyFridge = entry.agencyFridge?.toString() ?: ""
+                agencyPackagingStore = entry.agencyPackagingStore?.toString() ?: ""
+            }
+            loaded = true
+        }
+    }
+
     fun save() {
         scope.launch {
             saving = true
-            val operator = repository.settings.operatorName.first()
-            repository.saveHandover(
-                HandoverEntry(
-                    type = HandoverType.MORNING,
-                    date = today,
-                    operatorName = operator,
-                    createdAt = System.currentTimeMillis(),
-                    sheIncident = sheIncident, sheIncidentDetail = sheIncidentDetail,
-                    technicalIssue = technicalIssue, technicalDetail = technicalDetail,
-                    qualityIssue = qualityIssue, qualityDetail = qualityDetail,
-                    downtimeIssue = downtimeIssue, downtimeDetail = downtimeDetail,
-                    todaysVolume = todaysVolume.toIntOrNull(),
-                    tomorrowsVolume = tomorrowsVolume.toIntOrNull(),
-                    teamAPlanned = teamAPlanned.toIntOrNull(), teamAActual = teamAActual.toIntOrNull(),
-                    teamAFinishPlanned = teamAFinishPlanned, teamAFinishActual = teamAFinishActual,
-                    teamBPlanned = teamBPlanned.toIntOrNull(), teamBActual = teamBActual.toIntOrNull(),
-                    teamBFinishPlanned = teamBFinishPlanned, teamBFinishActual = teamBFinishActual,
-                    teamCPlanned = teamCPlanned.toIntOrNull(), teamCActual = teamCActual.toIntOrNull(),
-                    teamCFinishPlanned = teamCFinishPlanned, teamCFinishActual = teamCFinishActual,
-                    packingPpl = packingPpl.toIntOrNull(), packingTrainees = packingTrainees.toIntOrNull(),
-                    absence = absence, absenceNames = absenceNames,
-                    rtw = rtw, rtwNames = rtwNames,
-                    notOnRota = notOnRota, notOnRotaNames = notOnRotaNames,
-                    riskToService = riskToService, riskToServiceDetail = riskToServiceDetail,
-                    agencyCollation = agencyCollation.toIntOrNull(),
-                    agencyPrep = agencyPrep.toIntOrNull(),
-                    agencyHygiene = agencyHygiene.toIntOrNull(),
-                    agencyFridge = agencyFridge.toIntOrNull(),
-                    agencyPackagingStore = agencyPackagingStore.toIntOrNull()
-                )
+            val operator = existing?.operatorName ?: repository.settings.operatorName.first()
+            val entry = HandoverEntry(
+                id = existing?.id ?: 0,
+                type = HandoverType.MORNING,
+                date = existing?.date ?: today,
+                operatorName = operator,
+                createdAt = existing?.createdAt ?: System.currentTimeMillis(),
+                sheIncident = sheIncident, sheIncidentDetail = sheIncidentDetail,
+                technicalIssue = technicalIssue, technicalDetail = technicalDetail,
+                qualityIssue = qualityIssue, qualityDetail = qualityDetail,
+                downtimeIssue = downtimeIssue, downtimeDetail = downtimeDetail,
+                todaysVolume = todaysVolume.toIntOrNull(),
+                tomorrowsVolume = tomorrowsVolume.toIntOrNull(),
+                teamAPlanned = teamAPlanned.toIntOrNull(), teamAActual = teamAActual.toIntOrNull(),
+                teamAFinishPlanned = teamAFinishPlanned, teamAFinishActual = teamAFinishActual,
+                teamBPlanned = teamBPlanned.toIntOrNull(), teamBActual = teamBActual.toIntOrNull(),
+                teamBFinishPlanned = teamBFinishPlanned, teamBFinishActual = teamBFinishActual,
+                teamCPlanned = teamCPlanned.toIntOrNull(), teamCActual = teamCActual.toIntOrNull(),
+                teamCFinishPlanned = teamCFinishPlanned, teamCFinishActual = teamCFinishActual,
+                packingPpl = packingPpl.toIntOrNull(), packingTrainees = packingTrainees.toIntOrNull(),
+                absence = absence, absenceNames = absenceNames,
+                rtw = rtw, rtwNames = rtwNames,
+                notOnRota = notOnRota, notOnRotaNames = notOnRotaNames,
+                riskToService = riskToService, riskToServiceDetail = riskToServiceDetail,
+                agencyCollation = agencyCollation.toIntOrNull(),
+                agencyPrep = agencyPrep.toIntOrNull(),
+                agencyHygiene = agencyHygiene.toIntOrNull(),
+                agencyFridge = agencyFridge.toIntOrNull(),
+                agencyPackagingStore = agencyPackagingStore.toIntOrNull(),
+                synced = existing?.synced ?: false,
+                sheetRowCreated = existing?.sheetRowCreated ?: false
             )
+            if (existing != null) repository.editHandover(entry) else repository.saveHandover(entry)
             saving = false
             onDone()
         }
@@ -114,7 +158,7 @@ fun MorningHandoverScreen(repository: DowntimeRepository, onDone: () -> Unit) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("🌅 Morning Update") },
+                title = { Text(if (entryId != null) "🌅 Edit Morning Update" else "🌅 Morning Update") },
                 navigationIcon = {
                     IconButton(onClick = onDone) {
                         Icon(Icons.Filled.ArrowBack, contentDescription = "Back")
@@ -123,13 +167,19 @@ fun MorningHandoverScreen(repository: DowntimeRepository, onDone: () -> Unit) {
             )
         }
     ) { padding ->
+        if (!loaded) {
+            Box(modifier = Modifier.padding(padding).fillMaxSize(), contentAlignment = androidx.compose.ui.Alignment.Center) {
+                CircularProgressIndicator()
+            }
+            return@Scaffold
+        }
         Column(
             modifier = Modifier
                 .padding(padding)
                 .verticalScroll(rememberScrollState())
                 .padding(16.dp)
         ) {
-            Text(today, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(existing?.date ?: today, color = MaterialTheme.colorScheme.onSurfaceVariant)
 
             HandoverSectionHeader("In the last 24hrs")
             YesNoDetailField("SHE incidents and accidents", sheIncident, { sheIncident = it }, sheIncidentDetail, { sheIncidentDetail = it })
@@ -181,7 +231,11 @@ fun MorningHandoverScreen(repository: DowntimeRepository, onDone: () -> Unit) {
                 enabled = !saving,
                 modifier = Modifier.fillMaxWidth().height(56.dp)
             ) {
-                Text(if (saving) "Saving…" else "Send Morning Update", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                Text(
+                    if (saving) "Saving…" else if (existing != null) "Save Changes" else "Send Morning Update",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold
+                )
             }
             Spacer(modifier = Modifier.height(40.dp))
         }

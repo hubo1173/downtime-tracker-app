@@ -22,9 +22,11 @@ import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun EveningHandoverScreen(repository: DowntimeRepository, onDone: () -> Unit) {
+fun EveningHandoverScreen(repository: DowntimeRepository, entryId: Long? = null, onDone: () -> Unit) {
     val scope = rememberCoroutineScope()
     val today = remember { SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date()) }
+    var existing by remember { mutableStateOf<HandoverEntry?>(null) }
+    var loaded by remember { mutableStateOf(entryId == null) }
 
     var accidentIncident by remember { mutableStateOf(false) }
     var accidentIncidentDetail by remember { mutableStateOf("") }
@@ -51,31 +53,57 @@ fun EveningHandoverScreen(repository: DowntimeRepository, onDone: () -> Unit) {
 
     var saving by remember { mutableStateOf(false) }
 
+    // Edit mode: load the existing entry once and pre-fill every field.
+    LaunchedEffect(entryId) {
+        if (entryId != null) {
+            val entry = repository.getHandoverById(entryId)
+            existing = entry
+            if (entry != null) {
+                accidentIncident = entry.accidentIncident; accidentIncidentDetail = entry.accidentIncidentDetail
+                qualityIssue = entry.qualityIssue; qualityDetail = entry.qualityDetail
+                downtimeIssue = entry.downtimeIssue; downtimeDetail = entry.downtimeDetail
+                serviceScore = entry.serviceScore?.toString() ?: ""
+                efficiency = entry.efficiency?.toString() ?: ""
+                teamAFinishedTime = entry.teamAFinishedTime
+                teamBFinishedTime = entry.teamBFinishedTime
+                teamCFinishedTime = entry.teamCFinishedTime
+                collationFinished = entry.collationFinished
+                trayUpSentBy = entry.trayUpSentBy
+                shorts = entry.shorts; shortsDetail = entry.shortsDetail
+                reportUpdated = entry.reportUpdated; reportUpdatedDetail = entry.reportUpdatedDetail
+                aob = entry.aob; aobDetail = entry.aobDetail
+            }
+            loaded = true
+        }
+    }
+
     fun save() {
         scope.launch {
             saving = true
-            val operator = repository.settings.operatorName.first()
-            repository.saveHandover(
-                HandoverEntry(
-                    type = HandoverType.EVENING,
-                    date = today,
-                    operatorName = operator,
-                    createdAt = System.currentTimeMillis(),
-                    accidentIncident = accidentIncident, accidentIncidentDetail = accidentIncidentDetail,
-                    qualityIssue = qualityIssue, qualityDetail = qualityDetail,
-                    downtimeIssue = downtimeIssue, downtimeDetail = downtimeDetail,
-                    serviceScore = serviceScore.toIntOrNull(),
-                    efficiency = efficiency.toIntOrNull(),
-                    teamAFinishedTime = teamAFinishedTime,
-                    teamBFinishedTime = teamBFinishedTime,
-                    teamCFinishedTime = teamCFinishedTime,
-                    collationFinished = collationFinished,
-                    trayUpSentBy = trayUpSentBy,
-                    shorts = shorts, shortsDetail = shortsDetail,
-                    reportUpdated = reportUpdated, reportUpdatedDetail = reportUpdatedDetail,
-                    aob = aob, aobDetail = aobDetail
-                )
+            val operator = existing?.operatorName ?: repository.settings.operatorName.first()
+            val entry = HandoverEntry(
+                id = existing?.id ?: 0,
+                type = HandoverType.EVENING,
+                date = existing?.date ?: today,
+                operatorName = operator,
+                createdAt = existing?.createdAt ?: System.currentTimeMillis(),
+                accidentIncident = accidentIncident, accidentIncidentDetail = accidentIncidentDetail,
+                qualityIssue = qualityIssue, qualityDetail = qualityDetail,
+                downtimeIssue = downtimeIssue, downtimeDetail = downtimeDetail,
+                serviceScore = serviceScore.toIntOrNull(),
+                efficiency = efficiency.toIntOrNull(),
+                teamAFinishedTime = teamAFinishedTime,
+                teamBFinishedTime = teamBFinishedTime,
+                teamCFinishedTime = teamCFinishedTime,
+                collationFinished = collationFinished,
+                trayUpSentBy = trayUpSentBy,
+                shorts = shorts, shortsDetail = shortsDetail,
+                reportUpdated = reportUpdated, reportUpdatedDetail = reportUpdatedDetail,
+                aob = aob, aobDetail = aobDetail,
+                synced = existing?.synced ?: false,
+                sheetRowCreated = existing?.sheetRowCreated ?: false
             )
+            if (existing != null) repository.editHandover(entry) else repository.saveHandover(entry)
             saving = false
             onDone()
         }
@@ -84,7 +112,7 @@ fun EveningHandoverScreen(repository: DowntimeRepository, onDone: () -> Unit) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("🌇 End of Shift Update") },
+                title = { Text(if (entryId != null) "🌇 Edit End of Shift Update" else "🌇 End of Shift Update") },
                 navigationIcon = {
                     IconButton(onClick = onDone) {
                         Icon(Icons.Filled.ArrowBack, contentDescription = "Back")
@@ -93,13 +121,19 @@ fun EveningHandoverScreen(repository: DowntimeRepository, onDone: () -> Unit) {
             )
         }
     ) { padding ->
+        if (!loaded) {
+            Box(modifier = Modifier.padding(padding).fillMaxSize(), contentAlignment = androidx.compose.ui.Alignment.Center) {
+                CircularProgressIndicator()
+            }
+            return@Scaffold
+        }
         Column(
             modifier = Modifier
                 .padding(padding)
                 .verticalScroll(rememberScrollState())
                 .padding(16.dp)
         ) {
-            Text(today, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(existing?.date ?: today, color = MaterialTheme.colorScheme.onSurfaceVariant)
 
             HandoverSectionHeader("Summary")
             YesNoDetailField("Accident / incident", accidentIncident, { accidentIncident = it }, accidentIncidentDetail, { accidentIncidentDetail = it })
@@ -134,7 +168,11 @@ fun EveningHandoverScreen(repository: DowntimeRepository, onDone: () -> Unit) {
                 enabled = !saving,
                 modifier = Modifier.fillMaxWidth().height(56.dp)
             ) {
-                Text(if (saving) "Saving…" else "Send End of Shift Update", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                Text(
+                    if (saving) "Saving…" else if (existing != null) "Save Changes" else "Send End of Shift Update",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold
+                )
             }
             Spacer(modifier = Modifier.height(40.dp))
         }

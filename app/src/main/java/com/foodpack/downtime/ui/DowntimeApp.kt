@@ -9,6 +9,7 @@ import androidx.navigation.navArgument
 import com.foodpack.downtime.data.DowntimeRepository
 import com.foodpack.downtime.ui.screens.EditEntryScreen
 import com.foodpack.downtime.ui.screens.EveningHandoverScreen
+import com.foodpack.downtime.ui.screens.HandoverHistoryScreen
 import com.foodpack.downtime.ui.screens.HandoverScreen
 import com.foodpack.downtime.ui.screens.HistoryScreen
 import com.foodpack.downtime.ui.screens.HomeScreen
@@ -34,10 +35,15 @@ object Routes {
     const val HANDOVER = "handover"
     const val HANDOVER_MORNING = "handover_morning"
     const val HANDOVER_EVENING = "handover_evening"
+    const val HANDOVER_HISTORY = "handover_history"
+    const val HANDOVER_MORNING_EDIT = "handover_morning_edit/{entryId}"
+    const val HANDOVER_EVENING_EDIT = "handover_evening_edit/{entryId}"
     const val EDIT_ENTRY = "edit_entry/{entryId}"
 
     fun noteFolder(folder: String) = "note_folder/" + URLEncoder.encode(folder, "UTF-8")
     fun editEntry(entryId: Long) = "edit_entry/$entryId"
+    fun editMorningHandover(entryId: Long) = "handover_morning_edit/$entryId"
+    fun editEveningHandover(entryId: Long) = "handover_evening_edit/$entryId"
 }
 
 @Composable
@@ -85,7 +91,8 @@ fun DowntimeApp(repository: DowntimeRepository) {
             HandoverScreen(
                 onBack = { navController.popBackStack() },
                 onOpenMorning = { navController.navigate(Routes.HANDOVER_MORNING) },
-                onOpenEvening = { navController.navigate(Routes.HANDOVER_EVENING) }
+                onOpenEvening = { navController.navigate(Routes.HANDOVER_EVENING) },
+                onOpenHistory = { navController.navigate(Routes.HANDOVER_HISTORY) }
             )
         }
         composable(Routes.HANDOVER_MORNING) {
@@ -98,6 +105,36 @@ fun DowntimeApp(repository: DowntimeRepository) {
             EveningHandoverScreen(
                 repository = repository,
                 onDone = { navController.popBackStack(Routes.HOME, inclusive = false) }
+            )
+        }
+        composable(Routes.HANDOVER_HISTORY) {
+            HandoverHistoryScreen(
+                repository = repository,
+                onBack = { navController.popBackStack() },
+                onEditMorning = { id -> navController.navigate(Routes.editMorningHandover(id)) },
+                onEditEvening = { id -> navController.navigate(Routes.editEveningHandover(id)) }
+            )
+        }
+        composable(
+            route = Routes.HANDOVER_MORNING_EDIT,
+            arguments = listOf(navArgument("entryId") { type = NavType.LongType })
+        ) { backStackEntry ->
+            val entryId = backStackEntry.arguments?.getLong("entryId") ?: 0L
+            MorningHandoverScreen(
+                repository = repository,
+                entryId = entryId,
+                onDone = { navController.popBackStack() }
+            )
+        }
+        composable(
+            route = Routes.HANDOVER_EVENING_EDIT,
+            arguments = listOf(navArgument("entryId") { type = NavType.LongType })
+        ) { backStackEntry ->
+            val entryId = backStackEntry.arguments?.getLong("entryId") ?: 0L
+            EveningHandoverScreen(
+                repository = repository,
+                entryId = entryId,
+                onDone = { navController.popBackStack() }
             )
         }
         composable(Routes.LOG) {

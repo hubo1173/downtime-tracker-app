@@ -86,5 +86,7 @@ data class HandoverEntry(
 
     val synced: Boolean = false,
     val syncAttempts: Int = 0,
-    val lastSyncError: String? = null
+    val lastSyncError: String? = null,
+    val sheetRowCreated: Boolean = false,
+    val pendingDelete: Boolean = false
 )
