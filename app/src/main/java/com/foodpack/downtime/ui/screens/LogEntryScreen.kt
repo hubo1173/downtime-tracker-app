@@ -84,7 +84,7 @@ fun LogEntryScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Log entry") },
+                title = { Text("📝 Log entry") },
                 navigationIcon = {
                     IconButton(onClick = onDone) {
                         Icon(Icons.Filled.ArrowBack, contentDescription = "Back")
@@ -108,7 +108,8 @@ fun LogEntryScreen(
                 options = Constants.CATEGORIES,
                 selected = category,
                 onSelect = { onCategoryChange(it) },
-                big = true
+                big = true,
+                icons = Constants.CATEGORY_ICONS
             )
 
             if (needsEquipment) {
@@ -118,7 +119,8 @@ fun LogEntryScreen(
                     options = Constants.equipmentFor(category!!),
                     selected = equipment,
                     onSelect = { onEquipmentChange(it) },
-                    big = true
+                    big = true,
+                    icons = Constants.EQUIPMENT_ICONS
                 )
             }
 
@@ -240,16 +242,18 @@ private fun FlowRowChips(
     options: List<String>,
     selected: String?,
     onSelect: (String) -> Unit,
-    big: Boolean = false
+    big: Boolean = false,
+    icons: Map<String, String> = emptyMap()
 ) {
     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         options.forEach { option ->
+            val icon = icons[option]
             FilterChip(
                 selected = option == selected,
                 onClick = { onSelect(option) },
                 label = {
                     Text(
-                        option,
+                        if (icon != null) "$icon  $option" else option,
                         fontSize = if (big) 16.sp else 14.sp,
                         modifier = if (big) Modifier.padding(vertical = 6.dp) else Modifier
                     )

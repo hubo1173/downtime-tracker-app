@@ -16,8 +16,12 @@ object Constants {
     val LINES = (1..6).map { "Line $it" }
 
     // Top-level categories — what kind of thing caused the stop.
+    // Based on recurring patterns in the Unit K downtime log: labeller/blade/glue
+    // issues are the single biggest driver, followed by engineer response time,
+    // staffing/agency, and materials/planning.
     val CATEGORIES = listOf(
         "Machinery",
+        "Engineering",
         "Labour",
         "Materials",
         "Changeover",
@@ -27,16 +31,44 @@ object Constants {
         "Other"
     )
 
+    // A small icon shown next to each category chip — purely cosmetic.
+    val CATEGORY_ICONS: Map<String, String> = mapOf(
+        "Machinery" to "⚙️",
+        "Engineering" to "🔧",
+        "Labour" to "👥",
+        "Materials" to "📦",
+        "Changeover" to "🔄",
+        "Production Plan" to "📋",
+        "Quality" to "✅",
+        "Warehouse" to "🏭",
+        "Other" to "⚠️"
+    )
+
     // Only Machinery breaks down further into specific equipment.
     val EQUIPMENT_BY_CATEGORY: Map<String, List<String>> = mapOf(
         "Machinery" to listOf(
             "Labeler",
             "Depositor",
             "Fish Knife Depositor",
+            "Conveyor",
+            "Printer",
+            "Sensors",
             "Scissors",
             "Utensils / Scoop",
             "Other Machinery"
         )
+    )
+
+    val EQUIPMENT_ICONS: Map<String, String> = mapOf(
+        "Labeler" to "🏷️",
+        "Depositor" to "🥣",
+        "Fish Knife Depositor" to "🔪",
+        "Conveyor" to "➡️",
+        "Printer" to "🖨️",
+        "Sensors" to "📡",
+        "Scissors" to "✂️",
+        "Utensils / Scoop" to "🥄",
+        "Other Machinery" to "⚙️"
     )
 
     fun hasEquipmentStep(category: String): Boolean =
@@ -50,17 +82,26 @@ object Constants {
     private val FAULTS: Map<String, List<String>> = mapOf(
         "Machinery|Labeler" to listOf(
             "Glue build-up on blade",
-            "Blade not aligned",
+            "Blade not aligned / tension issue",
             "Label misfeed / jam",
-            "Roller issue",
+            "Label not cutting straight",
+            "Roller loose / worn",
+            "Orange drive roller worn or broken",
+            "Blue drive roller worn or broken",
+            "White roller glue build-up",
             "Transfer belt slipping / torn",
+            "Transfer belt glue build-up",
             "Sponge wheel not sticking label",
+            "Orange sponge wheel damaged",
             "Sensor / eye misread",
+            "Air leak / pneumatic issue",
             "Settings / changeover issue"
         ),
         "Machinery|Depositor" to listOf(
             "Clogged / jammed",
+            "Not dispensing / dispersing",
             "Weight / calibration off",
+            "Awaiting cleaning / wash",
             "Mechanical fault"
         ),
         "Machinery|Fish Knife Depositor" to listOf(
@@ -68,6 +109,24 @@ object Constants {
             "Blade issue",
             "Weight / calibration off",
             "Mechanical fault"
+        ),
+        "Machinery|Conveyor" to listOf(
+            "Conveyor belt issue / wrong mode",
+            "Conveyor jam",
+            "Mechanical fault"
+        ),
+        "Machinery|Printer" to listOf(
+            "Date / time not printing clearly",
+            "Printer not connecting",
+            "Printer head issue / air leak",
+            "Ribbon or cartridge issue",
+            "Printer screen fault"
+        ),
+        "Machinery|Sensors" to listOf(
+            "Sensor needs re-teaching",
+            "Sensor dirty / needs cleaning",
+            "Sensor misaligned",
+            "Reflector dirty / needs cleaning"
         ),
         "Machinery|Scissors" to listOf(
             "Blade dull",
@@ -81,11 +140,19 @@ object Constants {
         ),
         "Machinery|Other Machinery" to listOf(
             "Breakdown",
-            "Cleaning required"
+            "Cleaning required",
+            "Air leak / pneumatic issue"
+        ),
+        "Engineering" to listOf(
+            "Waiting for engineer",
+            "Engineer not on site",
+            "Parts not available",
+            "No engineering cover"
         ),
         "Labour" to listOf(
             "Staffing shortage",
             "Absence",
+            "Agency late",
             "Training",
             "Break / rotation delay"
         ),
@@ -93,6 +160,7 @@ object Constants {
             "Prep delivered late",
             "Prep didn't make enough",
             "Wrong material issued",
+            "Missing ingredient",
             "Ran out mid-shift"
         ),
         "Changeover" to listOf(

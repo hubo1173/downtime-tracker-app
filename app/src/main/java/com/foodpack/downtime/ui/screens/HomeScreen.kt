@@ -46,7 +46,7 @@ fun HomeScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Downtime Log") },
+                title = { Text("🏷️ Unit K Downtime") },
                 actions = {
                     IconButton(onClick = onOpenHistory) {
                         Icon(Icons.Filled.History, contentDescription = "History")
@@ -89,7 +89,7 @@ fun HomeScreen(
 
             if (openTimers.isNotEmpty()) {
                 Text(
-                    "Running now",
+                    "🔴 Running now",
                     fontSize = 16.sp,
                     fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.align(Alignment.Start)
@@ -194,7 +194,7 @@ private fun computeTodayStats(all: List<DowntimeEntry>, open: List<DowntimeEntry
 private fun TodayStatsCard(stats: TodayStats) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text("Today's Downtime", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("📊 Today's Downtime", color = MaterialTheme.colorScheme.onSurfaceVariant)
             Text(
                 "${stats.totalMinutes} min",
                 fontSize = 28.sp,

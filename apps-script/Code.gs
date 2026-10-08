@@ -2,7 +2,10 @@
  * Downtime Log — Google Sheets receiver.
  *
  * SETUP (one time, by a supervisor):
- * 1. Create (or open) a Google Sheet for the log.
+ * 1. Create (or open) a Google Sheet for the log. Name the file (and/or
+ *    the Drive folder it lives in) "Unit K Downtime" so everyone can find
+ *    it in Drive — renaming or moving the file afterwards is always safe,
+ *    this script writes to whichever Sheet it's bound to.
  * 2. Extensions > Apps Script. Delete any placeholder code and paste this whole file in.
  * 3. Click Deploy > New deployment.
  *    - Type: "Web app"
@@ -14,9 +17,17 @@
  * 5. Paste that URL into the app's Settings screen on every phone.
  *
  * The first entry ever posted will create a header row automatically.
+ *
+ * MULTIPLE PHONES AT ONCE: every operator's phone posts straight to this
+ * same Sheet — that's already the simplest reliable way to collect from
+ * many phones without running a server. A short lock below (LockService)
+ * makes sure two phones submitting in the same instant don't collide;
+ * each request just waits its turn (normally a few milliseconds) before
+ * its row is appended.
  */
 
 const SHEET_NAME = "Downtime Log";
+const LOCK_TIMEOUT_MS = 10000;
 
 const HEADERS = [
   "Date", "Time", "Operator", "Line", "Category", "Equipment",
@@ -24,6 +35,13 @@ const HEADERS = [
 ];
 
 function doPost(e) {
+  const lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(LOCK_TIMEOUT_MS);
+  } catch (lockErr) {
+    return jsonResponse({ status: "error", message: "Server busy, please retry." });
+  }
+
   try {
     const data = JSON.parse(e.postData.contents);
     const sheet = getOrCreateSheet();
@@ -46,6 +64,8 @@ function doPost(e) {
     return jsonResponse({ status: "ok" });
   } catch (err) {
     return jsonResponse({ status: "error", message: err.message });
+  } finally {
+    lock.releaseLock();
   }
 }
 
