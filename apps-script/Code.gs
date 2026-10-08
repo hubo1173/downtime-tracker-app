@@ -32,6 +32,17 @@
  * -encoded, POSTed here just like a log entry, and this script drops it
  * into the matching Drive subfolder (created on first use) next to the
  * Sheet. Folders are listed/browsed the same way, via a GET request.
+ *
+ * EDIT / DELETE FROM THE APP: every downtime row carries a hidden
+ * "Entry ID" in its last column. Editing or deleting an entry on the
+ * phone sends action "updateEntry" / "deleteEntry" with that ID, and
+ * this script finds the matching row by ID and updates or removes it
+ * in place — so the phone and the Sheet never show two different
+ * versions of the same entry.
+ *
+ * SHIFT HANDOVER: the Morning Update and End of Shift Update each post
+ * to their own sheet tab ("Morning Handover" / "Evening Handover"),
+ * created automatically on first use.
  */
 
 const SHEET_NAME = "Downtime Log";
@@ -44,9 +55,38 @@ const NOTE_FOLDERS = [
   "Production Plan"
 ];
 
+// "Entry ID" is last so existing column positions (and any formulas that
+// reference them) never shift.
 const HEADERS = [
   "Date", "Time", "Operator", "Line", "Category", "Equipment",
-  "Fault", "Note", "Duration (min)", "Start", "End", "Received At"
+  "Fault", "Note", "Duration (min)", "Start", "End", "Received At", "Entry ID"
+];
+const ENTRY_ID_COLUMN = HEADERS.length; // 1-based column number
+
+const MORNING_SHEET_NAME = "Morning Handover";
+const MORNING_HEADERS = [
+  "Date", "Operator",
+  "SHE Incident", "SHE Detail", "Technical", "Technical Detail",
+  "Quality", "Quality Detail", "Downtime", "Downtime Detail",
+  "Today's Volume", "Tomorrow's Volume",
+  "Team A Planned", "Team A Actual", "Team A Finish Planned", "Team A Finish Actual",
+  "Team B Planned", "Team B Actual", "Team B Finish Planned", "Team B Finish Actual",
+  "Team C Planned", "Team C Actual", "Team C Finish Planned", "Team C Finish Actual",
+  "Packing Ppl", "Packing Trainees",
+  "Absence", "Absence Names", "RTW", "RTW Names", "Not On Rota", "Not On Rota Names",
+  "Risk To Service", "Risk Detail",
+  "Agency Collation", "Agency Prep", "Agency Hygiene", "Agency Fridge", "Agency Packaging Store",
+  "Received At"
+];
+
+const EVENING_SHEET_NAME = "Evening Handover";
+const EVENING_HEADERS = [
+  "Date", "Operator",
+  "Accident/Incident", "Accident Detail", "Quality", "Quality Detail", "Downtime", "Downtime Detail",
+  "Service Score %", "Efficiency %",
+  "Team A Finished", "Team B Finished", "Team C Finished", "Collation Finished", "Tray Up Sent By",
+  "Shorts", "Shorts Detail", "Report Updated", "Report Detail", "AOB", "AOB Detail",
+  "Received At"
 ];
 
 function doPost(e) {
@@ -60,27 +100,22 @@ function doPost(e) {
   try {
     const data = JSON.parse(e.postData.contents);
 
-    if (data.action === "uploadFile") {
-      return handleUploadFile(data);
+    switch (data.action) {
+      case "uploadFile":
+        return handleUploadFile(data);
+      case "updateEntry":
+        return handleUpdateEntry(data);
+      case "deleteEntry":
+        return handleDeleteEntry(data);
+      case "morningHandover":
+        return handleHandover(data, MORNING_SHEET_NAME, MORNING_HEADERS, morningRow);
+      case "eveningHandover":
+        return handleHandover(data, EVENING_SHEET_NAME, EVENING_HEADERS, eveningRow);
     }
 
-    // Default (no action field): a downtime log entry, same as always.
+    // Default (no action field): a new downtime log entry.
     const sheet = getOrCreateSheet();
-    sheet.appendRow([
-      data.date || "",
-      data.time || "",
-      data.operator || "",
-      data.line || "",
-      data.station || "",
-      data.part || "",
-      data.reason || "",
-      data.note || "",
-      data.durationMinutes === null || data.durationMinutes === undefined ? "" : data.durationMinutes,
-      data.startTime || "",
-      data.endTime || "",
-      new Date()
-    ]);
-
+    sheet.appendRow(downtimeRow(data));
     return jsonResponse({ status: "ok" });
   } catch (err) {
     return jsonResponse({ status: "error", message: err.message });
@@ -103,14 +138,124 @@ function doGet(e) {
   return jsonResponse({ status: "ok", message: "Unit K Pulse endpoint is running." });
 }
 
+function downtimeRow(data) {
+  return [
+    data.date || "",
+    data.time || "",
+    data.operator || "",
+    data.line || "",
+    data.station || "",
+    data.part || "",
+    data.reason || "",
+    data.note || "",
+    data.durationMinutes === null || data.durationMinutes === undefined ? "" : data.durationMinutes,
+    data.startTime || "",
+    data.endTime || "",
+    new Date(),
+    data.id === null || data.id === undefined ? "" : data.id
+  ];
+}
+
+function handleUpdateEntry(data) {
+  const sheet = getOrCreateSheet();
+  const row = findRowByEntryId(sheet, ENTRY_ID_COLUMN, data.id);
+  if (row === -1) {
+    // Nothing to update yet (e.g. it never actually landed before) — append
+    // instead of silently dropping the edit.
+    sheet.appendRow(downtimeRow(data));
+    return jsonResponse({ status: "ok", note: "Row not found, appended instead." });
+  }
+  // Overwrite every column except Entry ID itself.
+  sheet.getRange(row, 1, 1, ENTRY_ID_COLUMN - 1).setValues([downtimeRow(data).slice(0, ENTRY_ID_COLUMN - 1)]);
+  return jsonResponse({ status: "ok" });
+}
+
+function handleDeleteEntry(data) {
+  const sheet = getOrCreateSheet();
+  const row = findRowByEntryId(sheet, ENTRY_ID_COLUMN, data.id);
+  if (row !== -1) {
+    sheet.deleteRow(row);
+  }
+  return jsonResponse({ status: "ok" });
+}
+
+/** Scans the given 1-based ID column for a matching Entry ID; returns the row number, or -1. */
+function findRowByEntryId(sheet, idColumn, id) {
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2 || id === null || id === undefined) return -1;
+  const ids = sheet.getRange(2, idColumn, lastRow - 1, 1).getValues();
+  for (let i = 0; i < ids.length; i++) {
+    if (String(ids[i][0]) === String(id) && String(id) !== "") {
+      return i + 2;
+    }
+  }
+  return -1;
+}
+
+function yn(value) {
+  return value ? "Y" : "N";
+}
+
+function numOrBlank(value) {
+  return value === null || value === undefined ? "" : value;
+}
+
+function morningRow(data) {
+  return [
+    data.date || "", data.operator || "",
+    yn(data.sheIncident), data.sheIncidentDetail || "",
+    yn(data.technicalIssue), data.technicalDetail || "",
+    yn(data.qualityIssue), data.qualityDetail || "",
+    yn(data.downtimeIssue), data.downtimeDetail || "",
+    numOrBlank(data.todaysVolume), numOrBlank(data.tomorrowsVolume),
+    numOrBlank(data.teamAPlanned), numOrBlank(data.teamAActual), data.teamAFinishPlanned || "", data.teamAFinishActual || "",
+    numOrBlank(data.teamBPlanned), numOrBlank(data.teamBActual), data.teamBFinishPlanned || "", data.teamBFinishActual || "",
+    numOrBlank(data.teamCPlanned), numOrBlank(data.teamCActual), data.teamCFinishPlanned || "", data.teamCFinishActual || "",
+    numOrBlank(data.packingPpl), numOrBlank(data.packingTrainees),
+    yn(data.absence), data.absenceNames || "",
+    yn(data.rtw), data.rtwNames || "",
+    yn(data.notOnRota), data.notOnRotaNames || "",
+    yn(data.riskToService), data.riskToServiceDetail || "",
+    numOrBlank(data.agencyCollation), numOrBlank(data.agencyPrep), numOrBlank(data.agencyHygiene),
+    numOrBlank(data.agencyFridge), numOrBlank(data.agencyPackagingStore),
+    new Date()
+  ];
+}
+
+function eveningRow(data) {
+  return [
+    data.date || "", data.operator || "",
+    yn(data.accidentIncident), data.accidentIncidentDetail || "",
+    yn(data.qualityIssue), data.qualityDetail || "",
+    yn(data.downtimeIssue), data.downtimeDetail || "",
+    numOrBlank(data.serviceScore), numOrBlank(data.efficiency),
+    data.teamAFinishedTime || "", data.teamBFinishedTime || "", data.teamCFinishedTime || "",
+    data.collationFinished || "", data.trayUpSentBy || "",
+    yn(data.shorts), data.shortsDetail || "",
+    yn(data.reportUpdated), data.reportUpdatedDetail || "",
+    yn(data.aob), data.aobDetail || "",
+    new Date()
+  ];
+}
+
+function handleHandover(data, sheetName, headers, rowBuilder) {
+  const sheet = getOrCreateNamedSheet(sheetName, headers);
+  sheet.appendRow(rowBuilder(data));
+  return jsonResponse({ status: "ok" });
+}
+
 function getOrCreateSheet() {
+  return getOrCreateNamedSheet(SHEET_NAME, HEADERS);
+}
+
+function getOrCreateNamedSheet(name, headers) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  let sheet = ss.getSheetByName(SHEET_NAME);
+  let sheet = ss.getSheetByName(name);
   if (!sheet) {
-    sheet = ss.insertSheet(SHEET_NAME);
+    sheet = ss.insertSheet(name);
   }
   if (sheet.getLastRow() === 0) {
-    sheet.appendRow(HEADERS);
+    sheet.appendRow(headers);
     sheet.setFrozenRows(1);
   }
   return sheet;

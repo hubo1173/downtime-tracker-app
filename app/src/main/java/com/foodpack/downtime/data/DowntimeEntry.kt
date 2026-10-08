@@ -31,5 +31,14 @@ data class DowntimeEntry(
 
     val synced: Boolean = false,
     val syncAttempts: Int = 0,
-    val lastSyncError: String? = null
+    val lastSyncError: String? = null,
+
+    // true once a row for this entry has been written to the Sheet at least
+    // once — after that, a re-sync (following an edit) updates that row in
+    // place instead of appending a duplicate.
+    val sheetRowCreated: Boolean = false,
+    // true once the operator deletes this entry locally and it's waiting
+    // for the matching Sheet row to be removed too (then the local row
+    // itself is deleted).
+    val pendingDelete: Boolean = false
 )

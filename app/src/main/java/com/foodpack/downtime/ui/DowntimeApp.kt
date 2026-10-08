@@ -7,10 +7,14 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.foodpack.downtime.data.DowntimeRepository
+import com.foodpack.downtime.ui.screens.EditEntryScreen
+import com.foodpack.downtime.ui.screens.EveningHandoverScreen
+import com.foodpack.downtime.ui.screens.HandoverScreen
 import com.foodpack.downtime.ui.screens.HistoryScreen
 import com.foodpack.downtime.ui.screens.HomeScreen
 import com.foodpack.downtime.ui.screens.LineSpeedScreen
 import com.foodpack.downtime.ui.screens.LogEntryScreen
+import com.foodpack.downtime.ui.screens.MorningHandoverScreen
 import com.foodpack.downtime.ui.screens.NoteFolderScreen
 import com.foodpack.downtime.ui.screens.NotesScreen
 import com.foodpack.downtime.ui.screens.SettingsScreen
@@ -27,8 +31,13 @@ object Routes {
     const val SLEEVE_CALC = "sleeve_calc"
     const val NOTES = "notes"
     const val NOTE_FOLDER = "note_folder/{folder}"
+    const val HANDOVER = "handover"
+    const val HANDOVER_MORNING = "handover_morning"
+    const val HANDOVER_EVENING = "handover_evening"
+    const val EDIT_ENTRY = "edit_entry/{entryId}"
 
     fun noteFolder(folder: String) = "note_folder/" + URLEncoder.encode(folder, "UTF-8")
+    fun editEntry(entryId: Long) = "edit_entry/$entryId"
 }
 
 @Composable
@@ -44,7 +53,8 @@ fun DowntimeApp(repository: DowntimeRepository) {
                 onOpenSettings = { navController.navigate(Routes.SETTINGS) },
                 onOpenLineSpeed = { navController.navigate(Routes.LINE_SPEED) },
                 onOpenSleeveCalc = { navController.navigate(Routes.SLEEVE_CALC) },
-                onOpenNotes = { navController.navigate(Routes.NOTES) }
+                onOpenNotes = { navController.navigate(Routes.NOTES) },
+                onOpenHandover = { navController.navigate(Routes.HANDOVER) }
             )
         }
         composable(Routes.LINE_SPEED) {
@@ -71,6 +81,25 @@ fun DowntimeApp(repository: DowntimeRepository) {
                 onBack = { navController.popBackStack() }
             )
         }
+        composable(Routes.HANDOVER) {
+            HandoverScreen(
+                onBack = { navController.popBackStack() },
+                onOpenMorning = { navController.navigate(Routes.HANDOVER_MORNING) },
+                onOpenEvening = { navController.navigate(Routes.HANDOVER_EVENING) }
+            )
+        }
+        composable(Routes.HANDOVER_MORNING) {
+            MorningHandoverScreen(
+                repository = repository,
+                onDone = { navController.popBackStack(Routes.HOME, inclusive = false) }
+            )
+        }
+        composable(Routes.HANDOVER_EVENING) {
+            EveningHandoverScreen(
+                repository = repository,
+                onDone = { navController.popBackStack(Routes.HOME, inclusive = false) }
+            )
+        }
         composable(Routes.LOG) {
             LogEntryScreen(
                 repository = repository,
@@ -80,7 +109,19 @@ fun DowntimeApp(repository: DowntimeRepository) {
         composable(Routes.HISTORY) {
             HistoryScreen(
                 repository = repository,
-                onBack = { navController.popBackStack() }
+                onBack = { navController.popBackStack() },
+                onEditEntry = { id -> navController.navigate(Routes.editEntry(id)) }
+            )
+        }
+        composable(
+            route = Routes.EDIT_ENTRY,
+            arguments = listOf(navArgument("entryId") { type = NavType.LongType })
+        ) { backStackEntry ->
+            val entryId = backStackEntry.arguments?.getLong("entryId") ?: 0L
+            EditEntryScreen(
+                repository = repository,
+                entryId = entryId,
+                onDone = { navController.popBackStack() }
             )
         }
         composable(Routes.SETTINGS) {

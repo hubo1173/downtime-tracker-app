@@ -26,12 +26,28 @@ class SheetsUploader(private val webhookUrl: String) {
     private val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.US)
     private val timeFormat = SimpleDateFormat("HH:mm:ss", Locale.US)
 
-    fun upload(entry: DowntimeEntry): Result<Unit> {
+    fun upload(entry: DowntimeEntry): Result<Unit> = post(toJson(entry))
+
+    /** Re-sends an already-synced entry under action "updateEntry" — the
+     *  script finds the matching row by Entry ID and overwrites it in
+     *  place instead of appending a duplicate. */
+    fun update(entry: DowntimeEntry): Result<Unit> =
+        post(toJson(entry).apply { put("action", "updateEntry") })
+
+    /** Asks the script to delete the row matching this entry's ID. */
+    fun delete(id: Long): Result<Unit> {
+        val json = JSONObject().apply {
+            put("action", "deleteEntry")
+            put("id", id)
+        }
+        return post(json)
+    }
+
+    private fun post(json: JSONObject): Result<Unit> {
         if (webhookUrl.isBlank()) {
             return Result.failure(IllegalStateException("No Google Sheet link configured yet (see Settings)."))
         }
         return try {
-            val json = toJson(entry)
             val body = json.toString().toRequestBody("application/json".toMediaType())
             val request = Request.Builder()
                 .url(webhookUrl)

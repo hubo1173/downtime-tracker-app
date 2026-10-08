@@ -29,7 +29,8 @@ fun HomeScreen(
     onOpenSettings: () -> Unit,
     onOpenLineSpeed: () -> Unit,
     onOpenSleeveCalc: () -> Unit,
-    onOpenNotes: () -> Unit
+    onOpenNotes: () -> Unit,
+    onOpenHandover: () -> Unit
 ) {
     val scope = rememberCoroutineScope()
     val openTimers by repository.observeOpenTimers().collectAsState(initial = emptyList())
@@ -108,6 +109,14 @@ fun HomeScreen(
                 modifier = Modifier.fillMaxWidth().height(52.dp)
             ) {
                 Text("📝 Notes", fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+            }
+            Spacer(modifier = Modifier.height(10.dp))
+
+            OutlinedButton(
+                onClick = onOpenHandover,
+                modifier = Modifier.fillMaxWidth().height(52.dp)
+            ) {
+                Text("🔄 Handover", fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
             }
             Spacer(modifier = Modifier.height(16.dp))
 

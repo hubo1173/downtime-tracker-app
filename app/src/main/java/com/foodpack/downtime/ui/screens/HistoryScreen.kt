@@ -6,6 +6,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -25,12 +27,14 @@ import java.util.Locale
 @Composable
 fun HistoryScreen(
     repository: DowntimeRepository,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onEditEntry: (Long) -> Unit
 ) {
     val scope = rememberCoroutineScope()
     val entries by repository.observeAll().collectAsState(initial = emptyList())
     val unsyncedCount by repository.observeUnsyncedCount().collectAsState(initial = 0)
     val dateFormat = remember { SimpleDateFormat("MMM d, HH:mm", Locale.US) }
+    var pendingDelete by remember { mutableStateOf<DowntimeEntry?>(null) }
 
     Scaffold(
         topBar = {
@@ -63,15 +67,42 @@ fun HistoryScreen(
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            items(entries) { entry ->
-                EntryCard(entry, dateFormat)
+            items(entries, key = { it.id }) { entry ->
+                EntryCard(
+                    entry = entry,
+                    dateFormat = dateFormat,
+                    onEdit = { onEditEntry(entry.id) },
+                    onDelete = { pendingDelete = entry }
+                )
             }
         }
+    }
+
+    pendingDelete?.let { entry ->
+        AlertDialog(
+            onDismissRequest = { pendingDelete = null },
+            title = { Text("Delete this entry?") },
+            text = { Text("${entry.line} · ${entry.station} — ${entry.reason}. This also removes it from the Google Sheet.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    scope.launch { repository.deleteEntry(entry) }
+                    pendingDelete = null
+                }) { Text("Delete") }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingDelete = null }) { Text("Cancel") }
+            }
+        )
     }
 }
 
 @Composable
-private fun EntryCard(entry: DowntimeEntry, dateFormat: SimpleDateFormat) {
+private fun EntryCard(
+    entry: DowntimeEntry,
+    dateFormat: SimpleDateFormat,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit
+) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -125,6 +156,22 @@ private fun EntryCard(entry: DowntimeEntry, dateFormat: SimpleDateFormat) {
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.error
                 )
+            }
+
+            if (!entry.isOpen) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    TextButton(onClick = onEdit) {
+                        Icon(Icons.Filled.Edit, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Edit")
+                    }
+                    TextButton(onClick = onDelete) {
+                        Icon(Icons.Filled.Delete, contentDescription = null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.error)
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Delete", color = MaterialTheme.colorScheme.error)
+                    }
+                }
             }
         }
     }
