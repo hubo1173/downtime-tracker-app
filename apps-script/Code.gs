@@ -40,6 +40,9 @@
  * in place — so the phone and the Sheet never show two different
  * versions of the same entry.
  *
+ * PHOTOS: a photo taken on a downtime entry is uploaded to a "Unit K Pulse
+ * Photos" Drive folder beside the Sheet; its link is stored in the "Photo" column.
+ *
  * BREAKS: each team's morning/afternoon break times post to a "Breaks"
  * tab (created on first use), with Entry ID last for deletes.
  *
@@ -66,10 +69,12 @@ const NOTE_FOLDERS = [
 const HEADERS = [
   "Date", "Time", "Operator", "Line", "Category", "Equipment",
   "Fault", "Note", "Duration (min)", "Start", "End", "Received At", "Entry ID",
-  "People Affected"
+  "People Affected", "Photo"
 ];
 const ENTRY_ID_COLUMN = 13; // 1-based column number (People Affected sits after it)
 const PEOPLE_AFFECTED_COLUMN = 14;
+const PHOTO_COLUMN = 15;
+const PHOTOS_FOLDER_NAME = "Unit K Pulse Photos";
 
 const BREAKS_SHEET_NAME = "Breaks";
 const BREAKS_HEADERS = ["Date", "Team", "Break", "Start", "End", "Operator", "Received At", "Entry ID"];
@@ -120,6 +125,8 @@ function doPost(e) {
     switch (data.action) {
       case "uploadFile":
         return handleUploadFile(data);
+      case "uploadPhoto":
+        return handleUploadPhoto(data);
       case "updateEntry":
         return handleUpdateEntry(data);
       case "deleteEntry":
@@ -182,7 +189,8 @@ function downtimeRow(data) {
     data.endTime || "",
     new Date(),
     data.id === null || data.id === undefined ? "" : data.id,
-    numOrBlank(data.peopleAffected)
+    numOrBlank(data.peopleAffected),
+    data.photoUrl || ""
   ];
 }
 
@@ -208,7 +216,7 @@ function handleUpdateEntry(data) {
   // Overwrite every column except Entry ID itself, then People Affected.
   const values = downtimeRow(data);
   sheet.getRange(row, 1, 1, ENTRY_ID_COLUMN - 1).setValues([values.slice(0, ENTRY_ID_COLUMN - 1)]);
-  sheet.getRange(row, PEOPLE_AFFECTED_COLUMN).setValue(values[PEOPLE_AFFECTED_COLUMN - 1]);
+  sheet.getRange(row, PEOPLE_AFFECTED_COLUMN, 1, 2).setValues([[values[PEOPLE_AFFECTED_COLUMN - 1], values[PHOTO_COLUMN - 1]]]);
   return jsonResponse({ status: "ok" });
 }
 
@@ -312,9 +320,12 @@ function handleDeleteHandover(data, sheetName, headers, idColumn) {
 
 function getOrCreateSheet() {
   const sheet = getOrCreateNamedSheet(SHEET_NAME, HEADERS);
-  // Sheets created before "People Affected" existed lack its header cell.
+  // Sheets created before these columns existed lack their header cells.
   if (!sheet.getRange(1, PEOPLE_AFFECTED_COLUMN).getValue()) {
     sheet.getRange(1, PEOPLE_AFFECTED_COLUMN).setValue("People Affected");
+  }
+  if (!sheet.getRange(1, PHOTO_COLUMN).getValue()) {
+    sheet.getRange(1, PHOTO_COLUMN).setValue("Photo");
   }
   return sheet;
 }
@@ -385,6 +396,23 @@ function handleUploadFile(data) {
     fileUrl: file.getUrl(),
     fileName: file.getName()
   });
+}
+
+/** Saves a downtime photo into "Unit K Pulse Photos" next to the Sheet; returns its Drive link. */
+function handleUploadPhoto(data) {
+  const fileName = data.fileName || "";
+  const base64Data = data.base64Data || "";
+  if (!fileName || !base64Data) {
+    return jsonResponse({ status: "error", message: "Missing fileName or photo data." });
+  }
+  const folder = getOrCreateChildFolder(getSpreadsheetParentFolder(), PHOTOS_FOLDER_NAME);
+  const existing = folder.getFilesByName(fileName);
+  while (existing.hasNext()) {
+    existing.next().setTrashed(true);
+  }
+  const blob = Utilities.newBlob(Utilities.base64Decode(base64Data), data.mimeType || "image/jpeg", fileName);
+  const file = folder.createFile(blob);
+  return jsonResponse({ status: "ok", fileUrl: file.getUrl(), fileName: file.getName() });
 }
 
 function handleListFiles(folderName) {

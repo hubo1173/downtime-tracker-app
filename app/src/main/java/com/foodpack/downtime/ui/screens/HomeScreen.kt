@@ -32,7 +32,8 @@ fun HomeScreen(
     onOpenSleeveCalc: () -> Unit,
     onOpenNotes: () -> Unit,
     onOpenHandover: () -> Unit,
-    onOpenBreaks: () -> Unit
+    onOpenBreaks: () -> Unit,
+    onOpenSummary: () -> Unit
 ) {
     val scope = rememberCoroutineScope()
     val openTimers by repository.observeOpenTimers().collectAsState(initial = emptyList())
@@ -54,6 +55,9 @@ fun HomeScreen(
             TopAppBar(
                 title = { Text("📡 Unit K Pulse") },
                 actions = {
+                    IconButton(onClick = onOpenSummary) {
+                        Text("📊", fontSize = 22.sp)
+                    }
                     IconButton(onClick = onOpenHistory) {
                         Icon(Icons.Filled.History, contentDescription = "History")
                     }

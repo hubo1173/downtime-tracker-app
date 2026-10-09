@@ -20,6 +20,7 @@ import com.foodpack.downtime.ui.screens.MorningHandoverScreen
 import com.foodpack.downtime.ui.screens.NoteFolderScreen
 import com.foodpack.downtime.ui.screens.NotesScreen
 import com.foodpack.downtime.ui.screens.SettingsScreen
+import com.foodpack.downtime.ui.screens.WeeklySummaryScreen
 import com.foodpack.downtime.ui.screens.SleeveCalculatorScreen
 import java.net.URLDecoder
 import java.net.URLEncoder
@@ -35,6 +36,7 @@ object Routes {
     const val NOTE_FOLDER = "note_folder/{folder}"
     const val HANDOVER = "handover"
     const val BREAKS = "breaks"
+    const val SUMMARY = "summary"
     const val HANDOVER_MORNING = "handover_morning"
     const val HANDOVER_EVENING = "handover_evening"
     const val HANDOVER_HISTORY = "handover_history"
@@ -63,7 +65,8 @@ fun DowntimeApp(repository: DowntimeRepository) {
                 onOpenSleeveCalc = { navController.navigate(Routes.SLEEVE_CALC) },
                 onOpenNotes = { navController.navigate(Routes.NOTES) },
                 onOpenHandover = { navController.navigate(Routes.HANDOVER) },
-                onOpenBreaks = { navController.navigate(Routes.BREAKS) }
+                onOpenBreaks = { navController.navigate(Routes.BREAKS) },
+                onOpenSummary = { navController.navigate(Routes.SUMMARY) }
             )
         }
         composable(Routes.LINE_SPEED) {
@@ -89,6 +92,9 @@ fun DowntimeApp(repository: DowntimeRepository) {
                 repository = repository,
                 onBack = { navController.popBackStack() }
             )
+        }
+        composable(Routes.SUMMARY) {
+            WeeklySummaryScreen(repository = repository, onBack = { navController.popBackStack() })
         }
         composable(Routes.BREAKS) {
             BreaksScreen(repository = repository, onBack = { navController.popBackStack() })

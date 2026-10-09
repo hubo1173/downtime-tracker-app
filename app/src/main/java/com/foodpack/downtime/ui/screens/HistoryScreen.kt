@@ -14,6 +14,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.foodpack.downtime.data.DowntimeEntry
@@ -103,6 +106,7 @@ private fun EntryCard(
     onEdit: () -> Unit,
     onDelete: () -> Unit
 ) {
+    val context = LocalContext.current
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -155,6 +159,13 @@ private fun EntryCard(
                         color = MaterialTheme.colorScheme.secondary
                     )
                 }
+            }
+            if (entry.photoUrl != null) {
+                TextButton(onClick = {
+                    try { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(entry.photoUrl))) } catch (_: Exception) {}
+                }) { Text("📷 View photo") }
+            } else if (entry.photoPath != null) {
+                Text("📷 Photo waiting to upload", style = MaterialTheme.typography.bodySmall)
             }
             entry.lastSyncError?.let {
                 Text(

@@ -10,7 +10,12 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.FileProvider
+import java.io.File
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -42,6 +47,14 @@ fun LogEntryScreen(
     var note by remember { mutableStateOf("") }
     var manualMinutes by remember { mutableStateOf("") }
     var peopleAffected by remember { mutableStateOf("") }
+    val context = LocalContext.current
+    var photoPath by remember { mutableStateOf<String?>(null) }
+    var pendingPhoto by remember { mutableStateOf<File?>(null) }
+    val takePhoto = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { ok ->
+        val f = pendingPhoto
+        if (ok && f != null) photoPath = f.absolutePath else f?.delete()
+        pendingPhoto = null
+    }
     var saving by remember { mutableStateOf(false) }
 
     val needsEquipment = category?.let { Constants.hasEquipmentStep(it) } == true
@@ -80,7 +93,8 @@ fun LogEntryScreen(
             part = if (needsEquipment) equipment else null,
             reason = f,
             note = note,
-            peopleAffected = peopleAffected.toIntOrNull()
+            peopleAffected = peopleAffected.toIntOrNull(),
+            photoPath = photoPath
         )
     }
 
@@ -169,6 +183,22 @@ fun LogEntryScreen(
                 label = { Text("People affected by downtime (optional)") },
                 modifier = Modifier.fillMaxWidth()
             )
+
+            Spacer(modifier = Modifier.height(12.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                OutlinedButton(onClick = {
+                    val dir = File(context.filesDir, "photos").apply { mkdirs() }
+                    val file = File(dir, "${System.currentTimeMillis()}.jpg")
+                    pendingPhoto = file
+                    val uri = FileProvider.getUriForFile(context, context.packageName + ".fileprovider", file)
+                    takePhoto.launch(uri)
+                }) { Text(if (photoPath == null) "📷 Add photo" else "📷 Retake photo", fontSize = 15.sp) }
+                if (photoPath != null) {
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Text("Photo attached", color = MaterialTheme.colorScheme.secondary)
+                    TextButton(onClick = { File(photoPath!!).delete(); photoPath = null }) { Text("Remove") }
+                }
+            }
 
             Spacer(modifier = Modifier.height(28.dp))
             Text("If the line is stopped right now, start a timer.", color = MaterialTheme.colorScheme.onSurfaceVariant)

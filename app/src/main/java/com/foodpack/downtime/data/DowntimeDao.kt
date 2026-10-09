@@ -34,6 +34,9 @@ interface DowntimeDao {
     @Query("SELECT * FROM downtime_entries WHERE pendingDelete = 1 ORDER BY createdAt ASC")
     suspend fun getPendingDeletes(): List<DowntimeEntry>
 
+    @Query("SELECT * FROM downtime_entries WHERE photoPath IS NOT NULL AND photoUrl IS NULL AND pendingDelete = 0")
+    suspend fun getPendingPhotos(): List<DowntimeEntry>
+
     @Query("SELECT COUNT(*) FROM downtime_entries WHERE synced = 0")
     fun observeUnsyncedCount(): Flow<Int>
 

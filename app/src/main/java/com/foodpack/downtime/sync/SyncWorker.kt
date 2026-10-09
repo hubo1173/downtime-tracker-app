@@ -5,6 +5,7 @@ import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.foodpack.downtime.data.AppDatabase
 import com.foodpack.downtime.data.SettingsStore
+import java.io.File
 import kotlinx.coroutines.flow.first
 
 /**
@@ -44,6 +45,23 @@ class SyncWorker(context: Context, params: WorkerParameters) : CoroutineWorker(c
             } else {
                 allOk = false
                 dowDao.markSyncFailed(entry.id, result.exceptionOrNull()?.message ?: "Unknown error")
+            }
+        }
+
+        // Photos first: once a photo is on Drive, its link rides along with the row below.
+        val photoUploader = PhotoUploader(webhookUrl)
+        for (entry in dowDao.getPendingPhotos()) {
+            val file = File(entry.photoPath ?: continue)
+            if (!file.exists()) {
+                dowDao.update(entry.copy(photoPath = null, synced = false))
+                continue
+            }
+            val result = photoUploader.upload(file, "downtime_${entry.id}_${entry.createdAt}.jpg")
+            if (result.isSuccess) {
+                dowDao.update(entry.copy(photoUrl = result.getOrNull(), synced = false))
+            } else {
+                allOk = false
+                dowDao.markSyncFailed(entry.id, result.exceptionOrNull()?.message ?: "Photo upload failed")
             }
         }
 

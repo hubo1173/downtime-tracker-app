@@ -27,6 +27,8 @@ data class DowntimeEntry(
     val endTime: Long? = null,    // set when the timer is stopped
     val durationMinutes: Int? = null, // final duration, timer-derived or manual
     val peopleAffected: Int? = null,  // how many people were stood idle / affected
+    val photoPath: String? = null,    // local file in app storage, until uploaded
+    val photoUrl: String? = null,     // Drive link once uploaded
 
     val isOpen: Boolean = false,  // true while a timer is running and not yet stopped
 

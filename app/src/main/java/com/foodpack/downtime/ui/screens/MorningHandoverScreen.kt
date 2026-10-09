@@ -13,6 +13,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.foodpack.downtime.data.DowntimeRepository
+import com.foodpack.downtime.data.DowntimeSummary
 import com.foodpack.downtime.data.HandoverEntry
 import com.foodpack.downtime.data.HandoverType
 import kotlinx.coroutines.flow.first
@@ -116,6 +117,23 @@ fun MorningHandoverScreen(repository: DowntimeRepository, entryId: Long? = null,
         }
     }
 
+    // Fills the Downtime box from the day's log: total minutes lost + top causes.
+    fun fillDowntimeFromLog() {
+        scope.launch {
+            val now = System.currentTimeMillis()
+            val startOfToday = java.util.Calendar.getInstance().apply {
+                set(java.util.Calendar.HOUR_OF_DAY, 0); set(java.util.Calendar.MINUTE, 0)
+                set(java.util.Calendar.SECOND, 0); set(java.util.Calendar.MILLISECOND, 0)
+            }.timeInMillis
+            val summary = DowntimeSummary.since(repository.observeAll().first(), now - 24L * 60 * 60 * 1000, now)
+            val text = DowntimeSummary.handoverText(summary)
+            if (text.isNotEmpty()) { downtimeIssue = true; downtimeDetail = text }
+        }
+    }
+
+    // New handover only: auto-fill once when the form opens.
+    LaunchedEffect(Unit) { if (entryId == null) fillDowntimeFromLog() }
+
     fun save(shareToWhatsApp: Boolean = false) {
         scope.launch {
             saving = true
@@ -189,6 +207,7 @@ fun MorningHandoverScreen(repository: DowntimeRepository, entryId: Long? = null,
             YesNoDetailField("Technical", technicalIssue, { technicalIssue = it }, technicalDetail, { technicalDetail = it })
             YesNoDetailField("Quality", qualityIssue, { qualityIssue = it }, qualityDetail, { qualityDetail = it })
             YesNoDetailField("Downtime", downtimeIssue, { downtimeIssue = it }, downtimeDetail, { downtimeDetail = it })
+            TextButton(onClick = { fillDowntimeFromLog() }) { Text("↻ Refresh downtime from log") }
 
             HandoverSectionHeader("Volumes")
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {

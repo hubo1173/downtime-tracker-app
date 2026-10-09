@@ -10,6 +10,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.foodpack.downtime.data.DowntimeRepository
+import com.foodpack.downtime.reminders.ReminderScheduler
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.Alignment
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
@@ -23,10 +26,17 @@ fun SettingsScreen(
     var operatorName by remember { mutableStateOf("") }
     var webhookUrl by remember { mutableStateOf("") }
     var saved by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    var remindersOn by remember { mutableStateOf(true) }
+    var handoverTime by remember { mutableStateOf("06:45") }
+    var breaksTime by remember { mutableStateOf("06:15") }
 
     LaunchedEffect(Unit) {
         operatorName = repository.settings.operatorName.first()
         webhookUrl = repository.settings.webhookUrl.first()
+        remindersOn = repository.settings.remindersEnabled.first()
+        handoverTime = repository.settings.handoverReminderTime.first()
+        breaksTime = repository.settings.breaksReminderTime.first()
     }
 
     Scaffold(
@@ -75,11 +85,43 @@ fun SettingsScreen(
             )
 
             Spacer(modifier = Modifier.height(24.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("Daily reminders", style = MaterialTheme.typography.labelLarge, modifier = Modifier.weight(1f))
+                Switch(checked = remindersOn, onCheckedChange = { remindersOn = it; saved = false })
+            }
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                "Notifies you before the 6:30am break-times and 7am morning-handover deadlines.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            if (remindersOn) {
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = breaksTime, onValueChange = { breaksTime = it; saved = false },
+                    label = { Text("Break times reminder (HH:mm)") }, singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = handoverTime, onValueChange = { handoverTime = it; saved = false },
+                    label = { Text("Morning handover reminder (HH:mm)") }, singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
             Button(
                 onClick = {
                     scope.launch {
                         repository.settings.setOperatorName(operatorName.trim())
                         repository.settings.setWebhookUrl(webhookUrl.trim())
+                        val (bh, bm) = ReminderScheduler.parse(breaksTime, 6 to 15)
+                        val (hh, hm) = ReminderScheduler.parse(handoverTime, 6 to 45)
+                        breaksTime = "%02d:%02d".format(bh, bm)
+                        handoverTime = "%02d:%02d".format(hh, hm)
+                        repository.settings.setReminders(remindersOn, handoverTime, breaksTime)
+                        ReminderScheduler.scheduleAll(context.applicationContext)
                         repository.retrySync()
                         saved = true
                     }

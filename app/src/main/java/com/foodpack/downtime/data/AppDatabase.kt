@@ -5,7 +5,7 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 
-@Database(entities = [DowntimeEntry::class, HandoverEntry::class, BreakEntry::class], version = 4, exportSchema = false)
+@Database(entities = [DowntimeEntry::class, HandoverEntry::class, BreakEntry::class], version = 5, exportSchema = false)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun downtimeDao(): DowntimeDao
     abstract fun handoverDao(): HandoverDao
@@ -29,6 +29,7 @@ abstract class AppDatabase : RoomDatabase() {
                     // change on this internal tool, so just rebuild rather
                     // than hand-write a Migration.
                     // v3 -> v4: peopleAffected column + break_entries table.
+                    // v4 -> v5: photoPath / photoUrl on downtime_entries.
                     .fallbackToDestructiveMigration()
                     .build().also { INSTANCE = it }
             }
