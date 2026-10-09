@@ -50,11 +50,15 @@ fun HandoverScreen(
 
             Button(
                 onClick = onOpenMorning,
-                modifier = Modifier.fillMaxWidth().height(72.dp)
+                modifier = Modifier.fillMaxWidth().height(96.dp)
             ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("🌅 Start of Shift", fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                    Text("Morning Update", fontSize = 13.sp)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("🌅", fontSize = 40.sp)
+                    Spacer(modifier = Modifier.width(14.dp))
+                    Column {
+                        Text("Start of Shift", fontSize = 24.sp, fontWeight = FontWeight.Bold)
+                        Text("Morning Update", fontSize = 16.sp)
+                    }
                 }
             }
 
@@ -62,11 +66,15 @@ fun HandoverScreen(
 
             Button(
                 onClick = onOpenEvening,
-                modifier = Modifier.fillMaxWidth().height(72.dp)
+                modifier = Modifier.fillMaxWidth().height(96.dp)
             ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("🌇 End of Shift", fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                    Text("End of Shift Update", fontSize = 13.sp)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("🌇", fontSize = 40.sp)
+                    Spacer(modifier = Modifier.width(14.dp))
+                    Column {
+                        Text("End of Shift", fontSize = 24.sp, fontWeight = FontWeight.Bold)
+                        Text("End of Shift Update", fontSize = 16.sp)
+                    }
                 }
             }
         }

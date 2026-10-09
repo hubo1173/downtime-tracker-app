@@ -142,6 +142,12 @@ private fun EntryCard(
                         fontWeight = FontWeight.SemiBold
                     )
                 }
+                entry.peopleAffected?.let {
+                    Text(
+                        "  ·  $it ppl affected",
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
                 if (entry.isOpen) {
                     Text(
                         "  ·  running",

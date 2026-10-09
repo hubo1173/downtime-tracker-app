@@ -80,6 +80,7 @@ class SheetsUploader(private val webhookUrl: String) {
             put("reason", entry.reason)
             put("note", entry.note)
             put("durationMinutes", entry.durationMinutes ?: JSONObject.NULL)
+            put("peopleAffected", entry.peopleAffected ?: JSONObject.NULL)
             put("startTime", entry.startTime?.let { timeFormat.format(Date(it)) } ?: "")
             put("endTime", entry.endTime?.let { timeFormat.format(Date(it)) } ?: "")
         }

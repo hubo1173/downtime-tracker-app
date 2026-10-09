@@ -26,6 +26,7 @@ data class DowntimeEntry(
     val startTime: Long? = null,  // set when a live timer is started
     val endTime: Long? = null,    // set when the timer is stopped
     val durationMinutes: Int? = null, // final duration, timer-derived or manual
+    val peopleAffected: Int? = null,  // how many people were stood idle / affected
 
     val isOpen: Boolean = false,  // true while a timer is running and not yet stopped
 

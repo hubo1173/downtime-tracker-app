@@ -41,6 +41,7 @@ fun LogEntryScreen(
     var customFault by remember { mutableStateOf("") }
     var note by remember { mutableStateOf("") }
     var manualMinutes by remember { mutableStateOf("") }
+    var peopleAffected by remember { mutableStateOf("") }
     var saving by remember { mutableStateOf(false) }
 
     val needsEquipment = category?.let { Constants.hasEquipmentStep(it) } == true
@@ -78,7 +79,8 @@ fun LogEntryScreen(
             station = cat,
             part = if (needsEquipment) equipment else null,
             reason = f,
-            note = note
+            note = note,
+            peopleAffected = peopleAffected.toIntOrNull()
         )
     }
 
@@ -100,8 +102,12 @@ fun LogEntryScreen(
                 .verticalScroll(rememberScrollState())
                 .padding(16.dp)
         ) {
-            SectionLabel("Line")
+            SectionLabel("Collation")
             ChipRow(options = Constants.LINES, selected = line, onSelect = { line = it })
+
+            Spacer(modifier = Modifier.height(16.dp))
+            SectionLabel("Tray pack")
+            ChipRow(options = Constants.LOMA_MDS, selected = line, onSelect = { line = it })
 
             Spacer(modifier = Modifier.height(24.dp))
             SectionLabel("What caused the stop?")
@@ -154,6 +160,14 @@ fun LogEntryScreen(
                 label = { Text("Note (optional)") },
                 modifier = Modifier.fillMaxWidth(),
                 minLines = 2
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+            OutlinedTextField(
+                value = peopleAffected,
+                onValueChange = { peopleAffected = it.filter { c -> c.isDigit() } },
+                label = { Text("People affected by downtime (optional)") },
+                modifier = Modifier.fillMaxWidth()
             )
 
             Spacer(modifier = Modifier.height(28.dp))

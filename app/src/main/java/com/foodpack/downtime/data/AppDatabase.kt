@@ -5,10 +5,11 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 
-@Database(entities = [DowntimeEntry::class, HandoverEntry::class], version = 3, exportSchema = false)
+@Database(entities = [DowntimeEntry::class, HandoverEntry::class, BreakEntry::class], version = 4, exportSchema = false)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun downtimeDao(): DowntimeDao
     abstract fun handoverDao(): HandoverDao
+    abstract fun breakDao(): BreakDao
 
     companion object {
         @Volatile private var INSTANCE: AppDatabase? = null
@@ -27,6 +28,7 @@ abstract class AppDatabase : RoomDatabase() {
                     // user-facing data worth preserving through a schema
                     // change on this internal tool, so just rebuild rather
                     // than hand-write a Migration.
+                    // v3 -> v4: peopleAffected column + break_entries table.
                     .fallbackToDestructiveMigration()
                     .build().also { INSTANCE = it }
             }

@@ -7,6 +7,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.foodpack.downtime.data.DowntimeRepository
+import com.foodpack.downtime.ui.screens.BreaksScreen
 import com.foodpack.downtime.ui.screens.EditEntryScreen
 import com.foodpack.downtime.ui.screens.EveningHandoverScreen
 import com.foodpack.downtime.ui.screens.HandoverHistoryScreen
@@ -33,6 +34,7 @@ object Routes {
     const val NOTES = "notes"
     const val NOTE_FOLDER = "note_folder/{folder}"
     const val HANDOVER = "handover"
+    const val BREAKS = "breaks"
     const val HANDOVER_MORNING = "handover_morning"
     const val HANDOVER_EVENING = "handover_evening"
     const val HANDOVER_HISTORY = "handover_history"
@@ -60,7 +62,8 @@ fun DowntimeApp(repository: DowntimeRepository) {
                 onOpenLineSpeed = { navController.navigate(Routes.LINE_SPEED) },
                 onOpenSleeveCalc = { navController.navigate(Routes.SLEEVE_CALC) },
                 onOpenNotes = { navController.navigate(Routes.NOTES) },
-                onOpenHandover = { navController.navigate(Routes.HANDOVER) }
+                onOpenHandover = { navController.navigate(Routes.HANDOVER) },
+                onOpenBreaks = { navController.navigate(Routes.BREAKS) }
             )
         }
         composable(Routes.LINE_SPEED) {
@@ -86,6 +89,9 @@ fun DowntimeApp(repository: DowntimeRepository) {
                 repository = repository,
                 onBack = { navController.popBackStack() }
             )
+        }
+        composable(Routes.BREAKS) {
+            BreaksScreen(repository = repository, onBack = { navController.popBackStack() })
         }
         composable(Routes.HANDOVER) {
             HandoverScreen(

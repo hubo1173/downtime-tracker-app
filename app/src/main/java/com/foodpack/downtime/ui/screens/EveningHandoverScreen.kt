@@ -8,6 +8,7 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -24,6 +25,7 @@ import java.util.Locale
 @Composable
 fun EveningHandoverScreen(repository: DowntimeRepository, entryId: Long? = null, onDone: () -> Unit) {
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
     val today = remember { SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date()) }
     var existing by remember { mutableStateOf<HandoverEntry?>(null) }
     var loaded by remember { mutableStateOf(entryId == null) }
@@ -77,7 +79,7 @@ fun EveningHandoverScreen(repository: DowntimeRepository, entryId: Long? = null,
         }
     }
 
-    fun save() {
+    fun save(shareToWhatsApp: Boolean = false) {
         scope.launch {
             saving = true
             val operator = existing?.operatorName ?: repository.settings.operatorName.first()
@@ -104,6 +106,7 @@ fun EveningHandoverScreen(repository: DowntimeRepository, entryId: Long? = null,
                 sheetRowCreated = existing?.sheetRowCreated ?: false
             )
             if (existing != null) repository.editHandover(entry) else repository.saveHandover(entry)
+            if (shareToWhatsApp) HandoverShare.shareToWhatsApp(context, HandoverShare.text(entry))
             saving = false
             onDone()
         }
@@ -173,6 +176,14 @@ fun EveningHandoverScreen(repository: DowntimeRepository, entryId: Long? = null,
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold
                 )
+            }
+            Spacer(modifier = Modifier.height(12.dp))
+            OutlinedButton(
+                onClick = { save(shareToWhatsApp = true) },
+                enabled = !saving,
+                modifier = Modifier.fillMaxWidth().height(56.dp)
+            ) {
+                Text("💬  Save & share to WhatsApp", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
             }
             Spacer(modifier = Modifier.height(40.dp))
         }

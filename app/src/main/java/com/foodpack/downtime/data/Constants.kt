@@ -15,6 +15,9 @@ object Constants {
     // Production lines
     val LINES = (1..6).map { "Line $it" }
 
+    // Tray pack Loma metal detectors, shown beneath the Collation lines.
+    val LOMA_MDS = (1..6).map { "Loma MD $it" }
+
     // Notes section: fixed Drive subfolders an operator can attach a
     // reference file (settings sheet, calibration doc, etc.) to. Keep
     // this in sync with NOTE_FOLDERS in apps-script/Code.gs.
@@ -70,6 +73,7 @@ object Constants {
             "Utensils / Scoop",
             "Conveyor belt",
             "Printer",
+            "Marco screen / system",
             "Sensors",
             "Scissors",
             "YCM Scales",
@@ -84,6 +88,7 @@ object Constants {
         "Utensils / Scoop" to "🥄",
         "Conveyor belt" to "➡️",
         "Printer" to "🖨️",
+        "Marco screen / system" to "🖥️",
         "Sensors" to "📡",
         "Scissors" to "✂️",
         "YCM Scales" to "⚖️",
@@ -113,7 +118,9 @@ object Constants {
             "Orange sponge wheel damaged",
             "Sensor / eye misread",
             "Air leak / pneumatic issue",
-            "Settings / changeover issue"
+            "Settings / changeover issue",
+            "Blade cleaning",
+            "Blade tension"
         ),
         "Machinery|Depositor" to listOf(
             "Clogged / jammed",
@@ -146,6 +153,12 @@ object Constants {
             "Printer screen fault",
             "Marco screen frozen"
         ),
+        "Machinery|Marco screen / system" to listOf(
+            "Screen frozen",
+            "System not responding",
+            "Needs restart",
+            "Wrong product / settings loaded"
+        ),
         "Machinery|Sensors" to listOf(
             "Sensor needs re-teaching",
             "Sensor dirty / needs cleaning",
@@ -171,14 +184,18 @@ object Constants {
             "Waiting for engineer",
             "Engineer not on site",
             "Parts not available",
-            "No engineering cover"
+            "No engineering cover",
+            "5am Eng present: Yes",
+            "5am Eng present: No"
         ),
         "Labour" to listOf(
             "Staffing shortage",
             "Absence",
             "Agency late",
             "Training",
-            "Break / rotation delay"
+            "Break / rotation delay",
+            "Skill issue",
+            "Union late"
         ),
         "Materials" to listOf(
             "Prep delivered late",
@@ -186,7 +203,7 @@ object Constants {
             "Wrong material issued",
             "Missing ingredient",
             "Ran out mid-shift",
-            "Tray pack packaging issued late"
+            "Packaging store delay"
         ),
         "Changeover" to listOf(
             "Product settings changeover",
@@ -196,21 +213,27 @@ object Constants {
         "Production Plan" to listOf(
             "Plan change",
             "Order change",
-            "Sequence change"
+            "Sequence change",
+            "Changeover time inaccurate",
+            "Wrong allergen order"
         ),
         "Quality" to listOf(
-            "Quality hold",
+            "Product on hold",
             "Rework",
             "Inspection",
             "QAS Camera verification time"
         ),
         "Tray pack" to listOf(
-            "Waiting on warehouse",
+            "Waiting for tray pack",
+            "Not enough trays from despatch",
             "Storage / logistics issue",
-            "Metal hit on Loma, waiting for QAS"
+            "Metal hit on Loma, waiting for QAS",
+            "Printer issue",
+            "Fire alarm"
         ),
         "Other" to listOf(
-            "Power / electrical"
+            "Power cut / electrical",
+            "Fire alarm"
         )
     )
 

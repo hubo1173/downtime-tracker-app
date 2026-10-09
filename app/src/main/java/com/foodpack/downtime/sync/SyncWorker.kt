@@ -83,6 +83,33 @@ class SyncWorker(context: Context, params: WorkerParameters) : CoroutineWorker(c
             }
         }
 
+        val breakDao = db.breakDao()
+        val breakUploader = BreakUploader(webhookUrl)
+
+        for (entry in breakDao.getPendingDeletes()) {
+            if (!entry.sheetRowCreated) {
+                breakDao.delete(entry)
+                continue
+            }
+            val result = breakUploader.delete(entry)
+            if (result.isSuccess) {
+                breakDao.delete(entry)
+            } else {
+                allOk = false
+                breakDao.markSyncFailed(entry.id, result.exceptionOrNull()?.message ?: "Unknown error")
+            }
+        }
+
+        for (entry in breakDao.getUnsynced()) {
+            val result = breakUploader.upload(entry)
+            if (result.isSuccess) {
+                breakDao.markSynced(entry.id)
+            } else {
+                allOk = false
+                breakDao.markSyncFailed(entry.id, result.exceptionOrNull()?.message ?: "Unknown error")
+            }
+        }
+
         return if (allOk) Result.success() else Result.retry()
     }
 }

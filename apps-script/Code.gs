@@ -40,6 +40,9 @@
  * in place — so the phone and the Sheet never show two different
  * versions of the same entry.
  *
+ * BREAKS: each team's morning/afternoon break times post to a "Breaks"
+ * tab (created on first use), with Entry ID last for deletes.
+ *
  * SHIFT HANDOVER: the Morning Update and End of Shift Update each post
  * to their own sheet tab ("Morning Handover" / "Evening Handover"),
  * created automatically on first use. Both carry a hidden "Entry ID" in
@@ -62,9 +65,15 @@ const NOTE_FOLDERS = [
 // reference them) never shift.
 const HEADERS = [
   "Date", "Time", "Operator", "Line", "Category", "Equipment",
-  "Fault", "Note", "Duration (min)", "Start", "End", "Received At", "Entry ID"
+  "Fault", "Note", "Duration (min)", "Start", "End", "Received At", "Entry ID",
+  "People Affected"
 ];
-const ENTRY_ID_COLUMN = HEADERS.length; // 1-based column number
+const ENTRY_ID_COLUMN = 13; // 1-based column number (People Affected sits after it)
+const PEOPLE_AFFECTED_COLUMN = 14;
+
+const BREAKS_SHEET_NAME = "Breaks";
+const BREAKS_HEADERS = ["Date", "Team", "Break", "Start", "End", "Operator", "Received At", "Entry ID"];
+const BREAKS_ENTRY_ID_COLUMN = BREAKS_HEADERS.length;
 
 // "Entry ID" is last on both Handover sheets too, same reasoning as the
 // Downtime Log — it lets an edit or delete sent from the phone find the
@@ -115,6 +124,10 @@ function doPost(e) {
         return handleUpdateEntry(data);
       case "deleteEntry":
         return handleDeleteEntry(data);
+      case "breakLog":
+        return handleBreakLog(data);
+      case "deleteBreak":
+        return handleDeleteHandover(data, BREAKS_SHEET_NAME, BREAKS_HEADERS, BREAKS_ENTRY_ID_COLUMN);
       case "morningHandover":
         return handleHandover(data, MORNING_SHEET_NAME, MORNING_HEADERS, morningRow);
       case "eveningHandover":
@@ -168,8 +181,19 @@ function downtimeRow(data) {
     data.startTime || "",
     data.endTime || "",
     new Date(),
-    data.id === null || data.id === undefined ? "" : data.id
+    data.id === null || data.id === undefined ? "" : data.id,
+    numOrBlank(data.peopleAffected)
   ];
+}
+
+function handleBreakLog(data) {
+  const sheet = getOrCreateNamedSheet(BREAKS_SHEET_NAME, BREAKS_HEADERS);
+  sheet.appendRow([
+    data.date || "", data.team || "", data.breakType || "",
+    data.startTime || "", data.endTime || "", data.operator || "",
+    new Date(), data.id === null || data.id === undefined ? "" : data.id
+  ]);
+  return jsonResponse({ status: "ok" });
 }
 
 function handleUpdateEntry(data) {
@@ -181,8 +205,10 @@ function handleUpdateEntry(data) {
     sheet.appendRow(downtimeRow(data));
     return jsonResponse({ status: "ok", note: "Row not found, appended instead." });
   }
-  // Overwrite every column except Entry ID itself.
-  sheet.getRange(row, 1, 1, ENTRY_ID_COLUMN - 1).setValues([downtimeRow(data).slice(0, ENTRY_ID_COLUMN - 1)]);
+  // Overwrite every column except Entry ID itself, then People Affected.
+  const values = downtimeRow(data);
+  sheet.getRange(row, 1, 1, ENTRY_ID_COLUMN - 1).setValues([values.slice(0, ENTRY_ID_COLUMN - 1)]);
+  sheet.getRange(row, PEOPLE_AFFECTED_COLUMN).setValue(values[PEOPLE_AFFECTED_COLUMN - 1]);
   return jsonResponse({ status: "ok" });
 }
 
@@ -285,7 +311,12 @@ function handleDeleteHandover(data, sheetName, headers, idColumn) {
 }
 
 function getOrCreateSheet() {
-  return getOrCreateNamedSheet(SHEET_NAME, HEADERS);
+  const sheet = getOrCreateNamedSheet(SHEET_NAME, HEADERS);
+  // Sheets created before "People Affected" existed lack its header cell.
+  if (!sheet.getRange(1, PEOPLE_AFFECTED_COLUMN).getValue()) {
+    sheet.getRange(1, PEOPLE_AFFECTED_COLUMN).setValue("People Affected");
+  }
+  return sheet;
 }
 
 function getOrCreateNamedSheet(name, headers) {

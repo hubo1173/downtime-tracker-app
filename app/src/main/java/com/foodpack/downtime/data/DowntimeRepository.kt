@@ -13,6 +13,7 @@ class DowntimeRepository(private val context: Context) {
 
     private val dao = AppDatabase.get(context).downtimeDao()
     private val handoverDao = AppDatabase.get(context).handoverDao()
+    private val breakDao = AppDatabase.get(context).breakDao()
     val settings = SettingsStore(context)
 
     fun observeAll(): Flow<List<DowntimeEntry>> = dao.observeAll()
@@ -86,6 +87,22 @@ class DowntimeRepository(private val context: Context) {
             SyncScheduler.syncNow(context)
         } else {
             handoverDao.delete(entry)
+        }
+    }
+
+    fun observeBreaks(): Flow<List<BreakEntry>> = breakDao.observeAll()
+
+    suspend fun saveBreak(entry: BreakEntry) {
+        breakDao.insert(entry)
+        SyncScheduler.syncNow(context)
+    }
+
+    suspend fun deleteBreak(entry: BreakEntry) {
+        if (entry.sheetRowCreated) {
+            breakDao.update(entry.copy(pendingDelete = true, synced = false))
+            SyncScheduler.syncNow(context)
+        } else {
+            breakDao.delete(entry)
         }
     }
 

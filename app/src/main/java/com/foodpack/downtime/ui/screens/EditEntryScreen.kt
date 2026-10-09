@@ -40,6 +40,7 @@ fun EditEntryScreen(
     var customFault by remember { mutableStateOf("") }
     var note by remember { mutableStateOf("") }
     var durationMinutes by remember { mutableStateOf("") }
+    var peopleAffected by remember { mutableStateOf("") }
     var saving by remember { mutableStateOf(false) }
 
     LaunchedEffect(entryId) {
@@ -60,6 +61,7 @@ fun EditEntryScreen(
         }
         note = existing.note
         durationMinutes = existing.durationMinutes?.toString() ?: ""
+        peopleAffected = existing.peopleAffected?.toString() ?: ""
         loaded = true
     }
 
@@ -112,8 +114,12 @@ fun EditEntryScreen(
                 .verticalScroll(rememberScrollState())
                 .padding(16.dp)
         ) {
-            EditSectionLabel("Line")
+            EditSectionLabel("Collation")
             EditChipRow(options = Constants.LINES, selected = line, onSelect = { line = it })
+
+            Spacer(modifier = Modifier.height(16.dp))
+            EditSectionLabel("Tray pack")
+            EditChipRow(options = Constants.LOMA_MDS, selected = line, onSelect = { line = it })
 
             Spacer(modifier = Modifier.height(24.dp))
             EditSectionLabel("What caused the stop?")
@@ -169,6 +175,14 @@ fun EditEntryScreen(
                 modifier = Modifier.fillMaxWidth()
             )
 
+            Spacer(modifier = Modifier.height(16.dp))
+            OutlinedTextField(
+                value = peopleAffected,
+                onValueChange = { peopleAffected = it.filter { c -> c.isDigit() } },
+                label = { Text("People affected (optional)") },
+                modifier = Modifier.fillMaxWidth()
+            )
+
             Spacer(modifier = Modifier.height(28.dp))
             Button(
                 onClick = {
@@ -184,7 +198,8 @@ fun EditEntryScreen(
                                 part = if (needsEquipment) equipment else null,
                                 reason = f,
                                 note = note,
-                                durationMinutes = durationMinutes.toIntOrNull()
+                                durationMinutes = durationMinutes.toIntOrNull(),
+                                peopleAffected = peopleAffected.toIntOrNull()
                             )
                         )
                         saving = false

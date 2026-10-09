@@ -10,6 +10,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -30,7 +31,8 @@ fun HomeScreen(
     onOpenLineSpeed: () -> Unit,
     onOpenSleeveCalc: () -> Unit,
     onOpenNotes: () -> Unit,
-    onOpenHandover: () -> Unit
+    onOpenHandover: () -> Unit,
+    onOpenBreaks: () -> Unit
 ) {
     val scope = rememberCoroutineScope()
     val openTimers by repository.observeOpenTimers().collectAsState(initial = emptyList())
@@ -75,19 +77,31 @@ fun HomeScreen(
             ) {
                 Button(
                     onClick = onLogNew,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFFD32F2F),
+                        contentColor = Color.White
+                    ),
                     modifier = Modifier
                         .weight(1f)
-                        .height(64.dp)
+                        .height(80.dp)
                 ) {
-                    Text("+ Log Issue / Downtime", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text("🚨", fontSize = 28.sp)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Log Issue / Downtime", fontSize = 19.sp, fontWeight = FontWeight.ExtraBold, color = Color.White)
+                    }
                 }
                 Button(
                     onClick = onOpenLineSpeed,
                     modifier = Modifier
                         .weight(1f)
-                        .height(64.dp)
+                        .height(80.dp)
                 ) {
-                    Text("⏱️ Line Speed", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text("⏱️", fontSize = 28.sp)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Line Speed", fontSize = 17.sp, fontWeight = FontWeight.Bold)
+                    }
                 }
             }
 
@@ -100,7 +114,9 @@ fun HomeScreen(
                 onClick = onOpenSleeveCalc,
                 modifier = Modifier.fillMaxWidth().height(52.dp)
             ) {
-                Text("📦 Poke Bowl Sleeve Calculator", fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+                Text("📦", fontSize = 24.sp)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Poke Bowl Sleeve Calculator", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
             }
             Spacer(modifier = Modifier.height(10.dp))
 
@@ -108,15 +124,9 @@ fun HomeScreen(
                 onClick = onOpenNotes,
                 modifier = Modifier.fillMaxWidth().height(52.dp)
             ) {
-                Text("📝 Notes", fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
-            }
-            Spacer(modifier = Modifier.height(10.dp))
-
-            OutlinedButton(
-                onClick = onOpenHandover,
-                modifier = Modifier.fillMaxWidth().height(52.dp)
-            ) {
-                Text("🔄 Handover", fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+                Text("📝", fontSize = 24.sp)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Notes", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
             }
             Spacer(modifier = Modifier.height(16.dp))
 
@@ -128,25 +138,49 @@ fun HomeScreen(
                 Spacer(modifier = Modifier.height(16.dp))
             }
 
-            if (openTimers.isNotEmpty()) {
-                Text(
-                    "🔴 Running now",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier.align(Alignment.Start)
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                LazyColumn(modifier = Modifier.fillMaxWidth()) {
-                    items(openTimers) { entry ->
-                        OpenTimerCard(entry = entry) {
-                            scope.launch { repository.stopTimer(entry.id, System.currentTimeMillis()) }
+            Column(
+                modifier = Modifier.weight(1f).fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                if (openTimers.isNotEmpty()) {
+                    Text(
+                        "🔴 Running now",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.align(Alignment.Start)
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    LazyColumn(modifier = Modifier.fillMaxWidth()) {
+                        items(openTimers) { entry ->
+                            OpenTimerCard(entry = entry) {
+                                scope.launch { repository.stopTimer(entry.id, System.currentTimeMillis()) }
+                            }
+                            Spacer(modifier = Modifier.height(8.dp))
                         }
-                        Spacer(modifier = Modifier.height(8.dp))
                     }
+                } else {
+                    Spacer(modifier = Modifier.height(24.dp))
+                    Text("No downtime running right now.", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-            } else {
-                Spacer(modifier = Modifier.height(40.dp))
-                Text("No downtime running right now.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+
+            // Pinned to the bottom of the screen: Breaks above Handover.
+            OutlinedButton(
+                onClick = onOpenBreaks,
+                modifier = Modifier.fillMaxWidth().height(56.dp)
+            ) {
+                Text("☕", fontSize = 26.sp)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Breaks", fontSize = 17.sp, fontWeight = FontWeight.SemiBold)
+            }
+            Spacer(modifier = Modifier.height(10.dp))
+            OutlinedButton(
+                onClick = onOpenHandover,
+                modifier = Modifier.fillMaxWidth().height(56.dp)
+            ) {
+                Text("🔄", fontSize = 26.sp)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Handover", fontSize = 17.sp, fontWeight = FontWeight.SemiBold)
             }
         }
     }
