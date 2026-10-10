@@ -71,6 +71,25 @@ object HandoverShare {
         append(e.operatorName)
     }
 
+    /** WhatsApp text for one day's break times, grouped by team (latest entry wins per team/break). */
+    fun breaksText(date: String, breaks: List<com.foodpack.downtime.data.BreakEntry>): String = buildString {
+        appendLine("*Break Times* - $date")
+        val today = breaks.filter { it.date == date }
+        listOf("Team A", "Team B", "Team C").forEach { t ->
+            appendLine()
+            appendLine("*$t*")
+            listOf("Morning", "Afternoon").forEach { type ->
+                val b = today.filter { it.team == t && it.breakType == type }.maxByOrNull { it.createdAt }
+                val times = if (b == null) "-" else "${b.startTime.ifBlank { "-" }} to ${b.endTime.ifBlank { "-" }}"
+                appendLine("$type break: $times")
+            }
+        }
+    }.trimEnd()
+
+    /** A single break entry as a short message. */
+    fun breakText(b: com.foodpack.downtime.data.BreakEntry): String =
+        "*Break Times* - ${b.date}\n${b.team} ${b.breakType.lowercase()} break: ${b.startTime.ifBlank { "-" }} to ${b.endTime.ifBlank { "-" }}"
+
     /** Opens WhatsApp (or WhatsApp Business) with the text pre-filled; falls back to the system share sheet. */
     fun shareToWhatsApp(context: Context, message: String) {
         fun send(pkg: String?): Boolean {

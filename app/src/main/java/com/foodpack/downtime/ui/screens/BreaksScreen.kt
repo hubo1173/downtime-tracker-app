@@ -29,6 +29,7 @@ private val BREAK_TYPES = listOf("Morning", "Afternoon")
 @Composable
 fun BreaksScreen(repository: DowntimeRepository, onBack: () -> Unit) {
     val scope = rememberCoroutineScope()
+    val context = androidx.compose.ui.platform.LocalContext.current
     val entries by repository.observeBreaks().collectAsState(initial = emptyList())
     val today = remember { SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date()) }
     val clock = remember { SimpleDateFormat("HH:mm", Locale.US) }
@@ -107,6 +108,12 @@ fun BreaksScreen(repository: DowntimeRepository, onBack: () -> Unit) {
                     enabled = !saving && (start.isNotBlank() || end.isNotBlank()),
                     modifier = Modifier.fillMaxWidth().height(56.dp)
                 ) { Text("Save break", fontSize = 16.sp, fontWeight = FontWeight.Bold) }
+                Spacer(Modifier.height(10.dp))
+                OutlinedButton(
+                    onClick = { HandoverShare.shareToWhatsApp(context, HandoverShare.breaksText(today, entries)) },
+                    enabled = entries.any { it.date == today },
+                    modifier = Modifier.fillMaxWidth().height(52.dp)
+                ) { Text("💬 Send today's breaks on WhatsApp", fontSize = 16.sp, fontWeight = FontWeight.Bold) }
                 Spacer(Modifier.height(16.dp))
                 HorizontalDivider()
                 Spacer(Modifier.height(8.dp))
@@ -123,6 +130,7 @@ fun BreaksScreen(repository: DowntimeRepository, onBack: () -> Unit) {
                             Text("${b.team} · ${b.breakType} break", fontWeight = FontWeight.Bold)
                             Text("${b.startTime.ifBlank { "-" }} to ${b.endTime.ifBlank { "-" }}  ·  ${b.date}", style = MaterialTheme.typography.bodySmall)
                         }
+                        TextButton(onClick = { HandoverShare.shareToWhatsApp(context, HandoverShare.breakText(b)) }) { Text("💬") }
                         IconButton(onClick = { scope.launch { repository.deleteBreak(b) } }) {
                             Icon(Icons.Filled.Delete, contentDescription = "Delete", tint = MaterialTheme.colorScheme.error)
                         }
