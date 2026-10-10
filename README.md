@@ -78,3 +78,13 @@ other file needs to change.
 You mentioned more detail is coming — when it does, the two places most
 likely to need editing are that `Constants.kt` file (for new categories) and
 `apps-script/Code.gs`'s `HEADERS` list (if you want new columns in the Sheet).
+
+## Web app (iPhone and any browser)
+
+`web/` is an installable web app (PWA) that does everything the Android app does, using the same Google Sheet and
+the same `apps-script/Code.gs`. It has no build step. Pushing to `main` deploys it with GitHub Pages
+(`.github/workflows/pages.yml`) to `https://<user>.github.io/downtime-tracker-app/`.
+
+* Open the link in Safari on iPhone, tap Share, then Add to Home Screen.
+* In Settings enter your name and the same Apps Script Web App link the Android phones use.
+* iPhones cannot schedule web notifications, so Settings can download two daily calendar alarms instead.
