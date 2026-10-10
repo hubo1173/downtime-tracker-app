@@ -125,7 +125,14 @@ fun MorningHandoverScreen(repository: DowntimeRepository, entryId: Long? = null,
                 set(java.util.Calendar.HOUR_OF_DAY, 0); set(java.util.Calendar.MINUTE, 0)
                 set(java.util.Calendar.SECOND, 0); set(java.util.Calendar.MILLISECOND, 0)
             }.timeInMillis
-            val summary = DowntimeSummary.since(repository.observeAll().first(), now - 24L * 60 * 60 * 1000, now)
+            // Only today's downtime, from midnight up to 07:15 (the time the update is sent).
+            // Yesterday's was already reported in the End of Shift message.
+            val cutoff = java.util.Calendar.getInstance().apply {
+                set(java.util.Calendar.HOUR_OF_DAY, 7); set(java.util.Calendar.MINUTE, 15)
+                set(java.util.Calendar.SECOND, 0); set(java.util.Calendar.MILLISECOND, 0)
+            }.timeInMillis
+            val all = repository.observeAll().first().filter { it.createdAt <= cutoff }
+            val summary = DowntimeSummary.since(all, startOfToday, minOf(now, cutoff))
             val text = DowntimeSummary.handoverText(summary)
             if (text.isNotEmpty()) { downtimeIssue = true; downtimeDetail = text }
         }
